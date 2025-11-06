@@ -49,7 +49,7 @@ export default function PairingScreen({ onPaired }) {
     try {
       const result = await validateAndPairDevice(pairingCode);
       
-      Alert.alert(
+      Alert?.alert && Alert.alert(
         'Success! 🎉',
         `Device paired successfully!\nWelcome, ${result.childName}!`,
         [{ 
@@ -58,7 +58,7 @@ export default function PairingScreen({ onPaired }) {
         }]
       );
     } catch (error) {
-      Alert.alert(
+      Alert?.alert && Alert.alert(
         'Pairing Failed',
         error.message || 'Invalid or expired pairing code. Please try again.',
         [{ text: 'OK' }],
@@ -94,6 +94,7 @@ export default function PairingScreen({ onPaired }) {
               styles.codeInput,
               digit && styles.codeInputFilled,
             ]}
+            testID={`code-input-${index}`}
             value={digit}
             onChangeText={text => handleCodeChange(text, index)}
             onKeyPress={e => handleKeyPress(e, index)}
@@ -112,6 +113,7 @@ export default function PairingScreen({ onPaired }) {
         ]}
         onPress={handleConnect}
         disabled={!isCodeComplete || loading}
+        testID="connect-button"
       >
         {loading ? (
           <ActivityIndicator color="#FFFFFF" />
