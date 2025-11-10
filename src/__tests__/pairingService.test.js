@@ -18,11 +18,11 @@ let mockDevicesDoc;
 let mockChildrenDoc;
 
 jest.mock('../config/firebase', () => {
-<<<<<<< HEAD
+
   const serverTimestamp = jest.fn(() => 'server-ts');
-=======
+
   const firestore = { FieldValue: { serverTimestamp: jest.fn(() => 'server-ts') } };
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 
   const pairingCodes = {
     where: jest.fn(() => pairingCodes),
@@ -57,11 +57,11 @@ jest.mock('../config/firebase', () => {
       children,
       devices,
     },
-<<<<<<< HEAD
+
     serverTimestamp,
-=======
+
     firestore,
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
   };
 });
 
@@ -165,7 +165,7 @@ describe('pairingService.validateAndPairDevice', () => {
   });
 });
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
+

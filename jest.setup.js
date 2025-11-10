@@ -1,43 +1,36 @@
-// Mocks for React Native Firebase and other native modules used in tests
-
-<<<<<<< HEAD
-jest.mock('@react-native-firebase/auth', () => ({
-  getAuth: jest.fn(() => ({})),
-}));
+// Core mocks for native modules leveraged across tests.
 
 jest.mock('@react-native-firebase/app', () => ({
   getApp: jest.fn(() => ({ name: 'mock-app' })),
 }));
 
+jest.mock('@react-native-firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+}));
+
 jest.mock('@react-native-firebase/firestore', () => {
-  function makeQuery() {
-    return {
-      where: jest.fn(() => makeQuery()),
-      limit: jest.fn(() => makeQuery()),
-      get: jest.fn(async () => ({ empty: true, docs: [] })),
-    };
-  }
+  const makeQuery = () => ({
+    where: jest.fn(() => makeQuery()),
+    limit: jest.fn(() => makeQuery()),
+    get: jest.fn(async () => ({ empty: true, docs: [] })),
+  });
 
-  function makeCollection() {
-    return {
-      add: jest.fn(async (payload) => ({ id: 'newMockId', payload })),
-      doc: jest.fn(() => makeDoc()),
-      where: jest.fn(() => makeQuery()),
-      limit: jest.fn(() => makeQuery()),
-      get: jest.fn(async () => ({ empty: true, docs: [] })),
-    };
-  }
+  const makeDoc = () => ({
+    id: 'mockDocId',
+    set: jest.fn(async () => {}),
+    update: jest.fn(async () => {}),
+    get: jest.fn(async () => ({ exists: true, data: () => ({}) })),
+    collection: jest.fn(() => makeCollection()),
+    ref: { update: jest.fn(async () => {}) },
+  });
 
-  function makeDoc() {
-    return {
-      id: 'mockDocId',
-      set: jest.fn(async () => {}),
-      update: jest.fn(async () => {}),
-      get: jest.fn(async () => ({ exists: true, data: () => ({}) })),
-      collection: jest.fn(() => makeCollection()),
-      ref: { update: jest.fn(async () => {}) },
-    };
-  }
+  const makeCollection = () => ({
+    add: jest.fn(async (payload) => ({ id: 'newMockId', payload })),
+    doc: jest.fn(() => makeDoc()),
+    where: jest.fn(() => makeQuery()),
+    limit: jest.fn(() => makeQuery()),
+    get: jest.fn(async () => ({ empty: true, docs: [] })),
+  });
 
   const mockDb = {
     collection: jest.fn(() => makeCollection()),
@@ -60,45 +53,6 @@ jest.mock('@react-native-firebase/firestore', () => {
     increment: jest.fn((value = 0) => value),
     Timestamp,
   };
-=======
-jest.mock('@react-native-firebase/auth', () => {
-  return () => ({});
-});
-
-jest.mock('@react-native-firebase/app', () => ({}));
-
-jest.mock('@react-native-firebase/firestore', () => {
-  const FieldValue = { serverTimestamp: jest.fn(() => new Date()) };
-
-  const createDoc = () => ({
-    id: 'mockDocId',
-    set: jest.fn(async () => {}),
-    update: jest.fn(async () => {}),
-    get: jest.fn(async () => ({ exists: true, data: () => ({}) })),
-    ref: { update: jest.fn(async () => {}) },
-  });
-
-  const collection = () => ({
-    doc: jest.fn(() => createDoc()),
-    add: jest.fn(async () => ({ id: 'newMockId' })),
-    where: jest.fn(() => ({
-      where: jest.fn(() => ({
-        limit: jest.fn(() => ({
-          get: jest.fn(async () => ({ empty: true, docs: [] })),
-        })),
-      })),
-      limit: jest.fn(() => ({
-        get: jest.fn(async () => ({ empty: true, docs: [] })),
-      })),
-      get: jest.fn(async () => ({ empty: true, docs: [] })),
-    })),
-    get: jest.fn(async () => ({ empty: true, docs: [] })),
-  });
-
-  const firestore = () => ({ collection });
-  firestore.FieldValue = FieldValue;
-  return firestore;
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
 });
 
 jest.mock('react-native-device-info', () => ({
@@ -111,8 +65,7 @@ jest.mock('react-native-device-info', () => ({
 }));
 
 jest.mock('@react-native-community/geolocation', () => ({
-  getCurrentPosition: jest.fn((success, error) => {
-    // Provide a deterministic mock position
+  getCurrentPosition: jest.fn((success) => {
     success({
       coords: {
         latitude: 37.421998,
@@ -135,10 +88,6 @@ jest.mock('react-native/Libraries/Alert/Alert', () => ({
   alert: jest.fn(),
 }));
 
-<<<<<<< HEAD
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
-=======
-
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82

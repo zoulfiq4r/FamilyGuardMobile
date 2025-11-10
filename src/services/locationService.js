@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import Geolocation from '@react-native-community/geolocation';
 import BackgroundTimer from 'react-native-background-timer';
 import { collections, serverTimestamp } from '../config/firebase';
@@ -350,7 +350,7 @@ export const checkLocationTrackingEnabled = async (deviceId) => {
     return false;
   }
 };
-=======
+
 import Geolocation from '@react-native-community/geolocation';
 import BackgroundTimer from 'react-native-background-timer';
 import { collections } from '../config/firebase';
@@ -667,4 +667,4 @@ export const checkLocationTrackingEnabled = async (deviceId) => {
     return false;
   }
 };
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 @REM Copyright (c) Meta Platforms, Inc. and affiliates.
 @REM
 @REM This source code is licensed under the MIT license found in the
@@ -98,7 +98,7 @@ exit /b %EXIT_CODE%
 if "%OS%"=="Windows_NT" endlocal
 
 :omega
-=======
+
 @REM Copyright (c) Meta Platforms, Inc. and affiliates.
 @REM
 @REM This source code is licensed under the MIT license found in the
@@ -198,4 +198,4 @@ exit /b %EXIT_CODE%
 if "%OS%"=="Windows_NT" endlocal
 
 :omega
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+

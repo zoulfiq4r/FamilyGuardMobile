@@ -98,7 +98,7 @@ export const getAppControlsOnce = async (familyId, childId) => {
 
   return state;
 };
-<<<<<<< HEAD
+
 
 export const setAppBlocked = async (familyId, childId, packageName, blocked) => {
   if (!familyId || !childId || !packageName) {
@@ -165,5 +165,5 @@ export const removeAppControl = async (familyId, childId, packageName) => {
     throw error;
   }
 };
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+

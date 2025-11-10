@@ -50,7 +50,7 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-<<<<<<< HEAD
+
 
         <receiver
             android:name=".blocker.FamilyGuardDeviceAdminReceiver"
@@ -66,7 +66,7 @@
                 <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
             </intent-filter>
         </receiver>
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
     </application>
 </manifest>

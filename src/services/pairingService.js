@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { collections, serverTimestamp } from '../config/firebase';
 import DeviceInfo from 'react-native-device-info';
 
@@ -11,7 +11,7 @@ export const validateAndPairDevice = async (pairingCode) => {
   try {
     console.log('🔍 Validating pairing code:', pairingCode);
 
-=======
+
 import { collections } from '../config/firebase';
 import firestore from '@react-native-firebase/firestore';
 import DeviceInfo from 'react-native-device-info';
@@ -25,7 +25,7 @@ export const validateAndPairDevice = async (pairingCode) => {
   try {
     console.log('🔍 Validating pairing code:', pairingCode);
 
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
     // Query pairingCodes collection using the code (some docs may not have isUsed field yet)
     const pairingCodesSnapshot = await collections.pairingCodes
       .where('code', '==', pairingCode)
@@ -57,11 +57,11 @@ export const validateAndPairDevice = async (pairingCode) => {
           const childData = childSnapshot.exists ? childSnapshot.data() : {};
 
           await existingDeviceDoc.ref.update({
-<<<<<<< HEAD
+
             lastSeen: serverTimestamp(),
-=======
+
             lastSeen: firestore.FieldValue.serverTimestamp(),
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
             isActive: true,
           });
 
@@ -83,7 +83,7 @@ export const validateAndPairDevice = async (pairingCode) => {
 
       throw new Error('This pairing code has already been used');
     }
-<<<<<<< HEAD
+
 
     // Check if code is expired (10 minutes = 600000 ms)
     const createdAt = pairingData.createdAt?.toMillis?.() || 
@@ -187,7 +187,7 @@ export const validateAndPairDevice = async (pairingCode) => {
     }
   }
 };
-=======
+
 
     // Check if code is expired (10 minutes = 600000 ms)
     const createdAt = pairingData.createdAt?.toMillis?.() || 
@@ -291,4 +291,4 @@ export const validateAndPairDevice = async (pairingCode) => {
     }
   }
 };
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+

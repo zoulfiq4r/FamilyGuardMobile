@@ -1,11 +1,11 @@
 import { NativeModules, Platform } from 'react-native';
 import BackgroundTimer from 'react-native-background-timer';
 import DeviceInfo from 'react-native-device-info';
-<<<<<<< HEAD
+
 import { collections, increment, serverTimestamp, Timestamp } from '../config/firebase';
-=======
+
 import { collections, firestore } from '../config/firebase';
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 import { toDateKey } from './appUsageAnalytics';
 
 const { AppUsageModule } = NativeModules;
@@ -13,10 +13,10 @@ const { AppUsageModule } = NativeModules;
 const isAndroid = Platform.OS === 'android';
 let pollingIntervalId = null;
 let childContext = null;
-<<<<<<< HEAD
+
 let usageTrackingActive = false;
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
 let deviceIdCache = null;
 let lastEventTimestamp = Date.now() - 5 * 60 * 1000; // look back 5 minutes by default
 let isProcessing = false;
@@ -182,19 +182,19 @@ const syncSessionToFirestore = async (session) => {
     deviceId,
     packageName: session.packageName,
     appName: session.appName,
-<<<<<<< HEAD
+
     startTime: Timestamp.fromDate(new Date(session.startTimeMs)),
     endTime: Timestamp.fromDate(new Date(session.endTimeMs)),
     durationMs: session.durationMs,
     durationSeconds: Math.round(session.durationMs / 1000),
     createdAt: serverTimestamp(),
-=======
+
     startTime: firestore.Timestamp.fromDate(new Date(session.startTimeMs)),
     endTime: firestore.Timestamp.fromDate(new Date(session.endTimeMs)),
     durationMs: session.durationMs,
     durationSeconds: Math.round(session.durationMs / 1000),
     createdAt: firestore.FieldValue.serverTimestamp(),
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
     dateKey: session.dateKey,
     hourBucket: session.hourBucket,
     isOngoing: false,
@@ -224,7 +224,7 @@ const syncSessionToFirestore = async (session) => {
     childId: childContext.childId,
     parentId: childContext.parentId,
     dateKey: session.dateKey,
-<<<<<<< HEAD
+
     lastUpdated: serverTimestamp(),
     totalDurationMs: increment(session.durationMs),
   };
@@ -234,7 +234,7 @@ const syncSessionToFirestore = async (session) => {
   aggregateUpdate[`apps.${session.packageName}.sessions`] = increment(1);
   aggregateUpdate[`apps.${session.packageName}.lastUsed`] = session.endTimeMs;
   aggregateUpdate[`hours.${session.hourBucket}`] = increment(session.durationMs);
-=======
+
     lastUpdated: firestore.FieldValue.serverTimestamp(),
     totalDurationMs: firestore.FieldValue.increment(session.durationMs),
   };
@@ -248,7 +248,7 @@ const syncSessionToFirestore = async (session) => {
   aggregateUpdate[`hours.${session.hourBucket}`] = firestore.FieldValue.increment(
     session.durationMs,
   );
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 
   try {
     console.log('📤 Updating aggregated usage document', {
@@ -275,15 +275,15 @@ const syncSessionToFirestore = async (session) => {
   const childAppUpdate = {
     name: session.appName,
     packageName: session.packageName,
-<<<<<<< HEAD
+
     usageMinutes: increment(usageMinutesIncrement),
     isBlocked: false,
     updatedAt: serverTimestamp(),
-=======
+
     usageMinutes: firestore.FieldValue.increment(usageMinutesIncrement),
     isBlocked: false,
     updatedAt: firestore.FieldValue.serverTimestamp(),
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
   };
 
   try {
@@ -310,19 +310,19 @@ const updateDeviceCurrentApp = async (appInfo) => {
         ? {
             packageName: appInfo.packageName,
             appName: appInfo.appName,
-<<<<<<< HEAD
+
             since: Timestamp.fromDate(new Date(appInfo.since)),
             updatedAt: serverTimestamp(),
           }
         : null,
       lastUsageHeartbeat: serverTimestamp(),
-=======
+
             since: firestore.Timestamp.fromDate(new Date(appInfo.since)),
             updatedAt: firestore.FieldValue.serverTimestamp(),
           }
         : null,
       lastUsageHeartbeat: firestore.FieldValue.serverTimestamp(),
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
     },
     { merge: true },
   );
@@ -442,13 +442,13 @@ export const startAppUsageTracking = async (context) => {
     return false;
   }
 
-<<<<<<< HEAD
+
   if (usageTrackingActive && childContext?.childId === context.childId) {
     return true;
   }
 
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
   ensureCurrentDateKey(Date.now());
 
   childContext = context;
@@ -469,19 +469,19 @@ export const startAppUsageTracking = async (context) => {
     BackgroundTimer.clearInterval(pollingIntervalId);
   }
   pollingIntervalId = BackgroundTimer.setInterval(pollUsageStats, 30_000);
-<<<<<<< HEAD
+
   usageTrackingActive = true;
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
   console.log('📱 App usage tracking started');
   return true;
 };
 
 export const stopAppUsageTracking = () => {
-<<<<<<< HEAD
+
   const wasTracking = usageTrackingActive || Boolean(pollingIntervalId);
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
   if (pollingIntervalId) {
     BackgroundTimer.clearInterval(pollingIntervalId);
     pollingIntervalId = null;
@@ -493,14 +493,14 @@ export const stopAppUsageTracking = () => {
   recentSessions.length = 0;
   currentDateKey = null;
   notifyListeners();
-<<<<<<< HEAD
+
   usageTrackingActive = false;
   if (wasTracking) {
     console.log('📱 App usage tracking stopped');
   }
-=======
+
   console.log('📱 App usage tracking stopped');
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 };
 
 export const subscribeToLocalUsageState = (callback) => {

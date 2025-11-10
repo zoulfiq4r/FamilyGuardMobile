@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import SplashScreen from './src/screens/SplashScreen';
 import PairingScreen from './src/screens/PairingScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -7,33 +8,24 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import PermissionRequestScreen from './src/screens/PermissionRequestScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import AboutScreen from './src/screens/AboutScreen';
-<<<<<<< HEAD
 import BlockAppsScreen from './src/screens/BlockAppsScreen';
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 import { testFirebaseConnection } from './src/config/firebase';
 import { startLocationTracking, stopLocationTracking } from './src/services/locationService';
+import { refreshForegroundApp, startAppUsageTracking, stopAppUsageTracking } from './src/services/appUsageService';
 import {
-  startAppUsageTracking,
-  stopAppUsageTracking,
-  refreshForegroundApp,
-} from './src/services/appUsageService';
-import {
-  startAppEnforcement,
-  stopAppEnforcement,
   getBlockerPermissionsStatus,
   openAccessibilitySettings,
-  requestOverlayPermission,
   requestIgnoreBatteryOptimizations,
+  requestOverlayPermission,
+  startAppEnforcement,
+  stopAppEnforcement,
 } from './src/services/appEnforcementService';
-<<<<<<< HEAD
 import {
   clearStoredChildContext,
   loadStoredChildContext,
   persistChildContext,
 } from './src/services/storageService';
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
 
 type Screen =
   | 'splash'
@@ -42,12 +34,8 @@ type Screen =
   | 'settings'
   | 'permissions'
   | 'profile'
-<<<<<<< HEAD
   | 'about'
   | 'blockApps';
-=======
-  | 'about';
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
 
 type ChildContext = {
   childId: string;
@@ -63,15 +51,9 @@ type PermissionState = {
   batteryOptimization: boolean;
 };
 
-<<<<<<< HEAD
 const SPLASH_DELAY_MS = 2000;
-const delay = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
   const [childContext, setChildContext] = useState<ChildContext | null>(null);
@@ -87,7 +69,6 @@ function App() {
     testFirebaseConnection();
   }, []);
 
-<<<<<<< HEAD
   const refreshBlockerPermissions = useCallback(async () => {
     try {
       const status = await getBlockerPermissionsStatus();
@@ -118,21 +99,12 @@ function App() {
     }
     return usageGranted;
   }, [childContext]);
-=======
-  useEffect(() => {
-    if (currentScreen === 'splash') {
-      const timer = setTimeout(() => {
-        setCurrentScreen('pairing');
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentScreen]);
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
 
   useEffect(() => {
-    if (currentScreen === 'permissions') {
-      refreshBlockerPermissions();
+    if (currentScreen !== 'permissions') {
+      return;
     }
+    refreshBlockerPermissions();
   }, [currentScreen, refreshBlockerPermissions]);
 
   useEffect(() => {
@@ -148,114 +120,82 @@ function App() {
       stopAppEnforcement();
       return undefined;
     }
+
     startAppEnforcement({
       childId: childContext.childId,
       parentId: childContext.parentId,
       familyId: childContext.parentId,
     });
+
     refreshBlockerPermissions();
+
     return () => {
       stopAppEnforcement();
     };
   }, [childContext, refreshBlockerPermissions]);
 
-<<<<<<< HEAD
-=======
-  const refreshUsageTracking = useCallback(async () => {
-    if (!childContext) {
-      return false;
-    }
-    const usageGranted = await startAppUsageTracking(childContext);
-    setPermissionState((prev) => ({
-      ...prev,
-      usage: usageGranted,
-    }));
-    if (usageGranted) {
-      refreshForegroundApp().catch(() => {});
-    }
-    return usageGranted;
-  }, [childContext]);
-
-  const refreshBlockerPermissions = useCallback(async () => {
-    try {
-      const status = await getBlockerPermissionsStatus();
-      setPermissionState((prev) => ({
-        ...prev,
-        accessibility: Boolean(status?.accessibility),
-        overlay: Boolean(status?.overlay),
-        batteryOptimization: Boolean(status?.batteryOptimization),
-      }));
-      return status;
-    } catch (error) {
-      console.warn('Failed to refresh blocker permissions', error);
-      return null;
-    }
-  }, []);
-
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
   const handlePaired = useCallback(
-    async (result: {
-      success: boolean;
-      childId?: string;
-      parentId?: string;
-      childName?: string;
-    }) => {
-      if (result.success && result.childId) {
-        const context: ChildContext = {
-          childId: result.childId,
-          parentId: result.parentId,
-          childName: result.childName,
-        };
-        setChildContext(context);
-<<<<<<< HEAD
-        await persistChildContext(context);
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
-        try {
-          console.log('🚀 Starting location tracking for child:', result.childId);
-          const locationGranted = await startLocationTracking(result.childId);
-          const usageGranted = await startAppUsageTracking(context);
-          setPermissionState((prev) => ({
-            ...prev,
-            location: locationGranted,
-            usage: usageGranted,
-          }));
-          refreshBlockerPermissions();
-          if (usageGranted) {
-            refreshForegroundApp().catch(() => {});
-          }
-          if (!locationGranted) {
-            console.log('⚠️ Location permission missing, showing permissions screen');
-            setCurrentScreen('permissions');
-          } else {
-            if (!usageGranted) {
-              console.log('⚠️ Usage access missing, continuing to home but prompting user');
-            }
-            setCurrentScreen('home');
-          }
-        } catch (error) {
-          console.error('Failed to start tracking:', error);
-          setPermissionState((prev) => ({
-            ...prev,
-            location: false,
-            usage: false,
-          }));
-          refreshBlockerPermissions();
-          setCurrentScreen('permissions');
-        }
-      } else {
+    async (result: { success: boolean; childId?: string; parentId?: string; childName?: string }) => {
+      if (!result.success || !result.childId) {
         setCurrentScreen('home');
+        return;
+      }
+
+      const context: ChildContext = {
+        childId: result.childId,
+        parentId: result.parentId,
+        childName: result.childName,
+      };
+
+      setChildContext(context);
+      await persistChildContext(context);
+
+      try {
+        console.log('🚀 Starting location tracking for child:', result.childId);
+        const locationGranted = await startLocationTracking(result.childId);
+        const usageGranted = await startAppUsageTracking(context);
+
+        setPermissionState((prev) => ({
+          ...prev,
+          location: locationGranted,
+          usage: usageGranted,
+        }));
+
+        refreshBlockerPermissions();
+
+        if (usageGranted) {
+          refreshForegroundApp().catch(() => {});
+        }
+
+        if (!locationGranted) {
+          console.log('⚠️ Location permission missing, showing permissions screen');
+          setCurrentScreen('permissions');
+          return;
+        }
+
+        if (!usageGranted) {
+          console.log('⚠️ Usage access missing, continuing to home but prompting user');
+        }
+
+        setCurrentScreen('home');
+      } catch (error) {
+        console.error('Failed to start tracking:', error);
+        setPermissionState((prev) => ({
+          ...prev,
+          location: false,
+          usage: false,
+        }));
+        refreshBlockerPermissions();
+        setCurrentScreen('permissions');
       }
     },
     [refreshBlockerPermissions],
   );
 
-<<<<<<< HEAD
   useEffect(() => {
     let isActive = true;
 
     const restorePairingState = async () => {
-      // Keep splash visible for a moment before loading persisted state.
       await delay(SPLASH_DELAY_MS);
 
       if (!isActive) {
@@ -264,9 +204,11 @@ function App() {
 
       try {
         const storedContext = await loadStoredChildContext();
+
         if (!isActive) {
           return;
         }
+
         if (storedContext?.childId) {
           await handlePaired({
             success: true,
@@ -292,8 +234,6 @@ function App() {
     };
   }, [handlePaired]);
 
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
   const handleNavigateToSettings = useCallback(() => {
     setCurrentScreen('settings');
   }, []);
@@ -302,59 +242,51 @@ function App() {
     setCurrentScreen('permissions');
   }, []);
 
+  const allCriticalPermissionsGranted = useMemo(
+    () =>
+      permissionState.location &&
+      permissionState.usage &&
+      permissionState.accessibility &&
+      permissionState.overlay,
+    [
+      permissionState.accessibility,
+      permissionState.location,
+      permissionState.overlay,
+      permissionState.usage,
+    ],
+  );
+
   const handleBack = useCallback(() => {
-<<<<<<< HEAD
-    // Handle navigation based on current screen
     if (currentScreen === 'blockApps' || currentScreen === 'profile' || currentScreen === 'about') {
       setCurrentScreen('settings');
       return;
     }
+
     if (currentScreen === 'permissions') {
-      if (
-        permissionState.location &&
-        permissionState.usage &&
-        permissionState.accessibility &&
-        permissionState.overlay
-      ) {
-        setCurrentScreen('home');
-        return;
-      }
+      setCurrentScreen(allCriticalPermissionsGranted ? 'home' : childContext ? 'home' : 'pairing');
+      return;
+    }
+
+    if (currentScreen === 'settings') {
       setCurrentScreen(childContext ? 'home' : 'pairing');
       return;
     }
-    if (currentScreen === 'settings') {
-=======
-    if (
-      permissionState.location &&
-      permissionState.usage &&
-      permissionState.accessibility &&
-      permissionState.overlay
-    ) {
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
-      setCurrentScreen('home');
+
+    if (currentScreen === 'home' && !childContext) {
+      setCurrentScreen('pairing');
       return;
     }
+
     setCurrentScreen(childContext ? 'home' : 'pairing');
-  }, [
-<<<<<<< HEAD
-    currentScreen,
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
-    childContext,
-    permissionState.accessibility,
-    permissionState.location,
-    permissionState.overlay,
-    permissionState.usage,
-  ]);
+  }, [allCriticalPermissionsGranted, childContext, currentScreen]);
 
   const handleLogout = useCallback(() => {
     stopLocationTracking();
     stopAppUsageTracking();
     stopAppEnforcement();
-<<<<<<< HEAD
+
     clearStoredChildContext();
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
     setChildContext(null);
     setPermissionState({
       location: false,
@@ -375,23 +307,24 @@ function App() {
         console.error('Failed to refresh location tracking', error);
       }
     }
+
     const usageGranted = await refreshUsageTracking();
     const blockerStatus = await refreshBlockerPermissions();
+
     const mergedPermissions = {
       location: locationGranted,
       usage: Boolean(usageGranted),
-      accessibility:
-        blockerStatus?.accessibility ?? permissionState.accessibility ?? false,
+      accessibility: blockerStatus?.accessibility ?? permissionState.accessibility ?? false,
       overlay: blockerStatus?.overlay ?? permissionState.overlay ?? false,
       batteryOptimization:
-        blockerStatus?.batteryOptimization ??
-        permissionState.batteryOptimization ??
-        false,
+        blockerStatus?.batteryOptimization ?? permissionState.batteryOptimization ?? false,
     };
+
     setPermissionState((prev) => ({
       ...prev,
       ...mergedPermissions,
     }));
+
     if (
       mergedPermissions.location &&
       mergedPermissions.usage &&
@@ -411,17 +344,12 @@ function App() {
   ]);
 
   const handleRequestUsageAccess = useCallback(() => {
-<<<<<<< HEAD
     if (!childContext?.childId) {
       console.log('Pairing required before requesting usage access permission.');
       return;
     }
     refreshUsageTracking();
   }, [childContext, refreshUsageTracking]);
-=======
-    refreshUsageTracking();
-  }, [refreshUsageTracking]);
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
 
   const handleRequestAccessibility = useCallback(() => {
     openAccessibilitySettings();
@@ -467,10 +395,7 @@ function App() {
           onNavigateToPermissions={handleNavigateToPermissions}
           onNavigateToProfile={() => setCurrentScreen('profile')}
           onNavigateToAbout={() => setCurrentScreen('about')}
-<<<<<<< HEAD
           onNavigateToBlockApps={() => setCurrentScreen('blockApps')}
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
           onLogout={handleLogout}
         />
       )}
@@ -488,12 +413,9 @@ function App() {
       )}
       {currentScreen === 'profile' && <ProfileScreen onBack={handleBack} />}
       {currentScreen === 'about' && <AboutScreen onBack={handleBack} />}
-<<<<<<< HEAD
       {currentScreen === 'blockApps' && (
         <BlockAppsScreen onBack={handleBack} childContext={childContext} />
       )}
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
     </SafeAreaProvider>
   );
 }

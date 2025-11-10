@@ -24,14 +24,14 @@ class AppBlockerModule(private val reactContext: ReactApplicationContext) :
     try {
       val rules = parseRules(data)
       AppBlockerManager.updateRules(rules)
-<<<<<<< HEAD
+
       val blockedPackages = extractBlockedPackages(rules)
       val deviceOwnerActive = DeviceOwnerController.updateBlockedPackages(reactContext, blockedPackages)
       val method = resolveEnforcementMethod(if (deviceOwnerActive) true else null)
       promise?.resolve(method)
-=======
+
       promise?.resolve(null)
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
     } catch (error: Throwable) {
       Log.e(TAG, "Failed to update block rules", error)
       promise?.reject("update_error", error)
@@ -41,14 +41,14 @@ class AppBlockerModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun clearBlockRules() {
     AppBlockerManager.updateRules(BlockRules(emptyMap(), null))
-<<<<<<< HEAD
+
     runCatching {
       DeviceOwnerController.updateBlockedPackages(reactContext, emptySet())
     }.onFailure { error ->
       Log.e(TAG, "Failed to clear device owner block list", error)
     }
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
   }
 
   @ReactMethod
@@ -122,11 +122,11 @@ class AppBlockerModule(private val reactContext: ReactApplicationContext) :
           "batteryOptimization",
           isBatteryOptimizationIgnored(),
         )
-<<<<<<< HEAD
+
         putBoolean("deviceOwner", DeviceOwnerController.hasDeviceOwnerPrivileges(reactContext))
         putString("enforcementMethod", resolveEnforcementMethod())
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
       }
       promise.resolve(status)
     } catch (error: Throwable) {
@@ -173,7 +173,7 @@ class AppBlockerModule(private val reactContext: ReactApplicationContext) :
     return powerManager?.isIgnoringBatteryOptimizations(reactContext.packageName) ?: false
   }
 
-<<<<<<< HEAD
+
   private fun extractBlockedPackages(rules: BlockRules): Set<String> =
     rules.blockedPackages.keys
       .filter { key ->
@@ -192,8 +192,8 @@ class AppBlockerModule(private val reactContext: ReactApplicationContext) :
     }
   }
 
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
   private fun parseRules(map: ReadableMap?): BlockRules {
     if (map == null || !map.hasKey("apps")) {
       return BlockRules(emptyMap(), null)

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import React from 'react';
 import {
   View,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E7EB',
   },
-=======
+
 import React from 'react';
 import {
   View,
@@ -252,5 +252,5 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E7EB',
   },
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 });

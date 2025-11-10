@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import React from 'react';
 import {
   View,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
   },
-=======
+
 import React from 'react';
 import {
   View,
@@ -567,5 +567,5 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
   },
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 });

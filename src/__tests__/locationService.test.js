@@ -31,17 +31,17 @@ jest.mock('@react-native-community/geolocation', () => {
 
 // Mock firebase collections used by locationService
 jest.mock('../config/firebase', () => {
-<<<<<<< HEAD
+
   const serverTimestamp = jest.fn(() => 'server-ts');
   const locations = { add: jest.fn(async () => ({})) };
   const children = { doc: jest.fn(() => ({ update: jest.fn(async () => {}) })) };
   return { collections: { locations, children }, serverTimestamp };
-=======
+
   const firestore = { FieldValue: { serverTimestamp: jest.fn(() => 'server-ts') } };
   const locations = { add: jest.fn(async () => ({})) };
   const children = { doc: jest.fn(() => ({ update: jest.fn(async () => {}) })) };
   return { collections: { locations, children }, firestore };
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
 });
 
 jest.mock('react-native-device-info', () => ({ getUniqueId: jest.fn(async () => 'device-abc') }));
@@ -67,7 +67,7 @@ describe('locationService.sendLocationUpdate', () => {
   });
 });
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
+

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { getApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
 import {
@@ -51,7 +51,7 @@ export const testFirebaseConnection = async () => {
 };
 
 export { app, auth, db, increment, serverTimestamp, Timestamp };
-=======
+
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
@@ -91,4 +91,4 @@ export const testFirebaseConnection = async () => {
 };
 
 export { auth, firestore, db };
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+

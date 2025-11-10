@@ -8,10 +8,10 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-<<<<<<< HEAD
+
 import android.os.SystemClock
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -29,11 +29,11 @@ class AppBlockerAccessibilityService : AccessibilityService() {
   private var messageView: TextView? = null
   private var isOverlayVisible = false
   private var activeRule: BlockRule? = null
-<<<<<<< HEAD
+
   private var lastForceClosePackage: String? = null
   private var lastForceCloseTimestamp: Long = 0
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
 
   override fun onServiceConnected() {
     super.onServiceConnected()
@@ -89,21 +89,21 @@ class AppBlockerAccessibilityService : AccessibilityService() {
   }
 
   private fun showOverlay(rule: BlockRule) {
-<<<<<<< HEAD
+
     activeRule = rule
     enforceAccessibilityBlock(rule)
 
-=======
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
+
     if (!Settings.canDrawOverlays(this)) {
       Log.w(TAG, "Overlay permission missing, cannot display blocker.")
       return
     }
 
-<<<<<<< HEAD
-=======
+
+
     activeRule = rule
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
     mainHandler.post {
       val wm = windowManager ?: return@post
       if (overlayView == null) {
@@ -205,7 +205,7 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
   private fun packageName(): String = applicationContext.packageName
 
-<<<<<<< HEAD
+
   private fun enforceAccessibilityBlock(rule: BlockRule) {
     val target = rule.packageName
     if (target.isBlank() || target == "*" || target == packageName()) {
@@ -230,9 +230,9 @@ class AppBlockerAccessibilityService : AccessibilityService() {
   companion object {
     private const val TAG = "AppBlockerService"
     private const val FORCE_CLOSE_DEBOUNCE_MS = 1200L
-=======
+
   companion object {
     private const val TAG = "AppBlockerService"
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
   }
 }

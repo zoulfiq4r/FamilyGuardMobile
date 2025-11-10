@@ -49,11 +49,11 @@ export const listenToDailyUsageAggregate = (childId, dateKey, callback) => {
         });
         return;
       }
-<<<<<<< HEAD
+
       const data = snapshot.data() || {};
-=======
+
       const data = snapshot.data();
->>>>>>> 7f95f45defbe90a36bc7cd4d1d2d2ea069505c82
+
       callback?.({
         totalDurationMs: data.totalDurationMs || 0,
         apps: mapAppTotals(data.apps),
