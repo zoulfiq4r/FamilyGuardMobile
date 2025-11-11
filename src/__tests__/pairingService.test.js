@@ -163,6 +163,45 @@ describe('pairingService.validateAndPairDevice', () => {
 
     await expect(validateAndPairDevice('999999')).rejects.toThrow(/expired/);
   });
+
+  test('throws when parentId missing in pairing doc', async () => {
+    const pairingData = {
+      code: '777777',
+      isUsed: false,
+      childName: 'Missing Parent',
+      createdAt: recentTs,
+    };
+    mockPairingDocs = [makeDoc(pairingData, 'pair-missing-parent')];
+    await expect(validateAndPairDevice('777777')).rejects.toThrow(/Missing parentId/);
+  });
+
+  test('throws when childName missing in pairing doc', async () => {
+    const pairingData = {
+      code: '888888',
+      isUsed: false,
+      parentId: 'parent-x',
+      createdAt: recentTs,
+    };
+    mockPairingDocs = [makeDoc(pairingData, 'pair-missing-child')];
+    await expect(validateAndPairDevice('888888')).rejects.toThrow(/Missing childName/);
+  });
+
+  test('throws when code reused but no device binding exists', async () => {
+    const pairingData = {
+      code: '222222',
+      isUsed: true,
+      parentId: 'parent-z',
+      childName: 'Zoe',
+      createdAt: recentTs,
+    };
+    mockPairingDocs = [makeDoc(pairingData, 'pair-used-no-device')];
+
+    await expect(validateAndPairDevice('222222')).rejects.toThrow(/already been used/);
+  });
+
+  test('requires a pairing code', async () => {
+    await expect(validateAndPairDevice()).rejects.toThrow(/Pairing code is required/);
+  });
 });
 
 

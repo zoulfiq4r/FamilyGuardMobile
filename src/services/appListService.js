@@ -96,8 +96,18 @@ export const subscribeToChildApps = (childId, callback) => {
  * Get apps from local usage state (apps that have been used)
  * @returns {Promise<Array>} Array of app objects from local usage
  */
-export const getAppsFromLocalUsage = () => {
-  return new Promise((resolve) => {
+export const getAppsFromLocalUsage = () =>
+  new Promise((resolve) => {
+    let cleanup = null;
+    let shouldCleanup = false;
+    const runCleanup = () => {
+      if (typeof cleanup === 'function') {
+        cleanup();
+      } else {
+        shouldCleanup = true;
+      }
+    };
+
     const unsubscribe = subscribeToLocalUsageState((snapshot) => {
       const apps = (snapshot?.totals || []).map((app) => ({
         packageName: app.packageName,
@@ -107,9 +117,13 @@ export const getAppsFromLocalUsage = () => {
         lastUsed: app.lastUsed || null,
       }));
 
-      unsubscribe();
+      runCleanup();
       resolve(apps);
     });
+
+    cleanup = typeof unsubscribe === 'function' ? unsubscribe : null;
+    if (shouldCleanup) {
+      cleanup?.();
+    }
   });
-};
 

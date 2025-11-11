@@ -11,8 +11,8 @@ const dailySnapshotHandlersStore = { current: null };
 const sessionSnapshotHandlersStore = { current: null };
 const deviceSnapshotHandlersStore = { current: null };
 
-let aggregateDocs = [];
-let aggregateShouldThrow = false;
+let mockAggregateDocs = [];
+let mockAggregateShouldThrow = false;
 
 jest.mock('../config/firebase', () => {
   const makeOnSnapshot = (store) => (success, error) => {
@@ -27,12 +27,12 @@ jest.mock('../config/firebase', () => {
     where: jest.fn(() => aggregatesCollection),
     orderBy: jest.fn(() => aggregatesCollection),
     get: jest.fn(async () => {
-      if (aggregateShouldThrow) {
+      if (mockAggregateShouldThrow) {
         throw new Error('aggregate-get');
       }
       return {
         forEach: (cb) => {
-          aggregateDocs.forEach((doc) => cb(doc));
+          mockAggregateDocs.forEach((doc) => cb(doc));
         },
       };
     }),
@@ -71,8 +71,8 @@ const emitSnapshot = (store, snapshot) => {
 
 describe('appUsageAnalytics service', () => {
   beforeEach(() => {
-    aggregateDocs = [];
-    aggregateShouldThrow = false;
+    mockAggregateDocs = [];
+    mockAggregateShouldThrow = false;
     dailySnapshotHandlersStore.current = null;
     sessionSnapshotHandlersStore.current = null;
     deviceSnapshotHandlersStore.current = null;
@@ -166,7 +166,7 @@ describe('appUsageAnalytics service', () => {
   });
 
   test('fetchUsageWindowSummary returns aggregates and handles errors', async () => {
-    aggregateDocs = [
+    mockAggregateDocs = [
       makeDoc('doc-1', { dateKey: '2024-01-01', totalDurationMs: 100 }),
       makeDoc('doc-2', { dateKey: '2024-01-02', totalDurationMs: 200 }),
     ];
@@ -181,7 +181,7 @@ describe('appUsageAnalytics service', () => {
       ],
     });
 
-    aggregateShouldThrow = true;
+    mockAggregateShouldThrow = true;
     const fallback = await fetchUsageWindowSummary('child', 2);
     expect(fallback.totalDurationMs).toBe(0);
     expect(fallback.days).toEqual([]);

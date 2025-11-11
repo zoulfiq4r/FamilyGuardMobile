@@ -1,10 +1,3 @@
-import {
-  getChildApps,
-  subscribeToChildApps,
-  getAppsFromLocalUsage,
-} from '../services/appListService';
-import { subscribeToLocalUsageState } from '../services/appUsageService';
-
 const mockAppsCollection = {
   get: jest.fn(),
   onSnapshot: jest.fn(),
@@ -28,6 +21,13 @@ jest.mock('../services/appUsageService', () => ({
   subscribeToLocalUsageState: jest.fn(),
 }));
 
+const { subscribeToLocalUsageState } = require('../services/appUsageService');
+const {
+  getChildApps,
+  subscribeToChildApps,
+  getAppsFromLocalUsage,
+} = require('../services/appListService');
+
 const makeSnapshot = (docs) => ({
   forEach: (cb) =>
     docs.forEach(({ id, data }) =>
@@ -39,14 +39,31 @@ const makeSnapshot = (docs) => ({
 });
 
 describe('appListService', () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
   beforeEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockClear();
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   test('getChildApps returns empty array when childId missing', async () => {
     const apps = await getChildApps('');
     expect(apps).toEqual([]);
     expect(mockChildren.doc).not.toHaveBeenCalled();
+  });
+
+  test('getChildApps returns [] when firestore throws', async () => {
+    mockAppsCollection.get.mockRejectedValueOnce(new Error('fire'));
+    const apps = await getChildApps('child-err');
+    expect(apps).toEqual([]);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to get child apps',
+      expect.any(Error),
+    );
   });
 
   test('getChildApps maps documents and sorts by app name', async () => {
@@ -149,6 +166,13 @@ describe('appListService', () => {
     ]);
   });
 
+  test('subscribeToChildApps returns noop when child id missing', () => {
+    const callback = jest.fn();
+    const unsubscribe = subscribeToChildApps('', callback);
+    expect(typeof unsubscribe).toBe('function');
+    expect(mockChildren.doc).not.toHaveBeenCalled();
+  });
+
   test('getAppsFromLocalUsage resolves with mapped usage data', async () => {
     const unsubscribe = jest.fn();
     subscribeToLocalUsageState.mockImplementationOnce((listener) => {
@@ -173,5 +197,18 @@ describe('appListService', () => {
         lastUsed: 10,
       },
     ]);
+  });
+
+  test('getAppsFromLocalUsage resolves empty when listener provides nothing', async () => {
+    const unsubscribe = jest.fn();
+    subscribeToLocalUsageState.mockImplementationOnce((listener) => {
+      listener(null);
+      return unsubscribe;
+    });
+
+    const apps = await getAppsFromLocalUsage();
+
+    expect(apps).toEqual([]);
+    expect(unsubscribe).toHaveBeenCalled();
   });
 });

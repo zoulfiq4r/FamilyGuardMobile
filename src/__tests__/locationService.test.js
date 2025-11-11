@@ -30,18 +30,27 @@ jest.mock('@react-native-community/geolocation', () => {
 });
 
 // Mock firebase collections used by locationService
-jest.mock('../config/firebase', () => {
+const mockChildDocs = new Map();
+const createChildDoc = () => ({
+  collection: jest.fn(() => ({
+    add: jest.fn(async () => ({ id: 'child-location' })),
+  })),
+  set: jest.fn(async () => {}),
+  update: jest.fn(async () => {}),
+});
 
+jest.mock('../config/firebase', () => {
   const serverTimestamp = jest.fn(() => 'server-ts');
   const locations = { add: jest.fn(async () => ({})) };
-  const children = { doc: jest.fn(() => ({ update: jest.fn(async () => {}) })) };
+  const children = {
+    doc: jest.fn((id) => {
+      if (!mockChildDocs.has(id)) {
+        mockChildDocs.set(id, createChildDoc());
+      }
+      return mockChildDocs.get(id);
+    }),
+  };
   return { collections: { locations, children }, serverTimestamp };
-
-  const firestore = { FieldValue: { serverTimestamp: jest.fn(() => 'server-ts') } };
-  const locations = { add: jest.fn(async () => ({})) };
-  const children = { doc: jest.fn(() => ({ update: jest.fn(async () => {}) })) };
-  return { collections: { locations, children }, firestore };
-
 });
 
 jest.mock('react-native-device-info', () => ({ getUniqueId: jest.fn(async () => 'device-abc') }));
@@ -50,6 +59,10 @@ import Geolocation from '@react-native-community/geolocation';
 import { sendLocationUpdate } from '../services/locationService';
 
 describe('locationService.sendLocationUpdate', () => {
+  beforeEach(() => {
+    mockChildDocs.clear();
+  });
+
   test('sends location successfully', async () => {
     // default mock returns success
     const res = await sendLocationUpdate('child-1');
