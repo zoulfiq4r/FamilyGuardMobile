@@ -2,8 +2,6 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import SettingsScreen from '../screens/SettingsScreen';
 
-jest.mock('react-native/Libraries/Alert/Alert', () => ({ alert: jest.fn() }));
-
 const RNAlert = require('react-native/Libraries/Alert/Alert');
 
 const createProps = () => ({
@@ -54,4 +52,3 @@ describe('SettingsScreen', () => {
     expect(props.onLogout).toHaveBeenCalled();
   });
 });
-
