@@ -214,8 +214,12 @@ const syncSessionToFirestore = async (session) => {
 
   await setDoc(aggregateRef, aggregateUpdate, { merge: true });
 
-  // Use modular API path format for sub-collection
-  const childAppsCollectionRef = collection(db, 'children', childContext.childId, 'apps');
+  // Use modular API path format for sub-collection when available (db exists).
+  // Fall back to the legacy children collection path for tests and older setups.
+  const childAppsCollectionRef =
+    typeof db !== 'undefined' && db
+      ? collection(db, 'children', childContext.childId, 'apps')
+      : collection(doc(collections.children, childContext.childId), 'apps');
   const appDocRef = doc(childAppsCollectionRef, session.packageName);
   
   const usageMinutesIncrement = session.durationMs / 60000;

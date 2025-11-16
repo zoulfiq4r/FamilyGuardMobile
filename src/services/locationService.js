@@ -91,7 +91,9 @@ const getLocationWithFallback = (options, attempt = 1) =>
 
         // If the first (high-accuracy/GPS) attempt times out or reports
         // POSITION_UNAVAILABLE, retry once using reduced accuracy (network).
-        const shouldFallback = (error?.code === 3 || error?.code === 2) && options.enableHighAccuracy && attempt === 1;
+        // Only fallback to network for a timeout (code 3). Keep code 2 (POSITION_UNAVAILABLE)
+        // mapped to a friendly GPS unavailable message.
+        const shouldFallback = error?.code === 3 && options.enableHighAccuracy && attempt === 1;
         if (shouldFallback) {
           console.log(`⚠️  GPS failed, attempting fallback with Network...`);
           getLocationWithFallback(
@@ -201,7 +203,7 @@ export const sendLocationUpdate = async (childId) => {
         'Location Unavailable',
         'No location provider available. Please enable GPS/location services.',
         [
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          { text: 'Open Settings', onPress: () => Linking?.openSettings?.() },
           { text: 'OK' },
         ],
         { cancelable: true },
