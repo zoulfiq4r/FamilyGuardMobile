@@ -33,7 +33,7 @@ jest.mock('../services/appUsageService', () => ({
 
 const mockServerTimestamp = jest.fn(() => 'server-ts');
 
-const mockAppsCollection = {
+const mockAppControlsCollection = {
   onSnapshot: jest.fn((success, error) => {
     remoteHandlers.current = success;
     remoteHandlers.error = error;
@@ -45,13 +45,24 @@ const mockAppsCollection = {
 
 const mockChildrenCollection = {
   doc: jest.fn(() => ({
-    collection: jest.fn(() => mockAppsCollection),
+    collection: jest.fn(() => mockAppControlsCollection),
+  })),
+};
+
+const mockFamiliesCollection = {
+  doc: jest.fn(() => ({
+    collection: jest.fn(() => ({
+      doc: jest.fn(() => ({
+        collection: jest.fn(() => mockAppControlsCollection),
+      })),
+    })),
   })),
 };
 
 jest.mock('../config/firebase', () => ({
   collections: {
     children: mockChildrenCollection,
+    families: mockFamiliesCollection,
   },
   serverTimestamp: mockServerTimestamp,
 }));
@@ -123,7 +134,8 @@ describe('appEnforcementService', () => {
     mockSubscribeToLocalUsageState.mockClear();
     mockSetUsageTimezone.mockClear();
     mockChildrenCollection.doc.mockClear();
-    mockAppsCollection.onSnapshot.mockClear();
+    mockFamiliesCollection.doc.mockClear();
+    mockAppControlsCollection.onSnapshot.mockClear();
     mockServerTimestamp.mockClear();
     Object.values(mockAppBlockerModule).forEach((fn) => fn?.mockClear?.());
     consoleWarnSpy.mockClear();
@@ -153,14 +165,12 @@ describe('appEnforcementService', () => {
 
     expect(mockSubscribeToAppControls).toHaveBeenCalledWith('fam-1', 'child-1', expect.any(Function));
     expect(mockSubscribeToLocalUsageState).toHaveBeenCalledWith(expect.any(Function));
-    expect(mockChildrenCollection.doc).toHaveBeenCalledWith('child-1');
+    expect(mockFamiliesCollection.doc).toHaveBeenCalledWith('fam-1');
 
     const remoteDoc = createRemoteDoc('com.remote', {
-      status: {
-        isBlocked: true,
-        message: 'Remote lock',
-        updatedAt: { toMillis: () => 1700 },
-      },
+      blocked: true,
+      blockMessage: 'Custom Remote Block Message',
+      updatedAt: { toMillis: () => 1700 },
     });
     emitRemoteSnapshot([remoteDoc]);
 
@@ -191,7 +201,11 @@ describe('appEnforcementService', () => {
     expect(mockAppBlockerModule.updateBlockRules).toHaveBeenCalledWith(
       expect.objectContaining({
         apps: expect.objectContaining({
-          'com.remote': expect.objectContaining({ active: true, reason: 'remoteBlock' }),
+          'com.remote': expect.objectContaining({ 
+            active: true, 
+            reason: 'remoteBlock',
+            message: 'Custom Remote Block Message'
+          }),
           'com.blocked': expect.objectContaining({ active: true, reason: 'blocked' }),
           'com.limit': expect.objectContaining({ active: true, reason: 'dailyLimit' }),
         }),

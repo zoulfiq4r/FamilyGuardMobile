@@ -64,19 +64,44 @@ const resetState = () => {
   lastEnforcementMethod = TELEMETRY_UNKNOWN_METHOD;
 };
 
-const resolveChildAppsRef = (childId) => {
+const resolveAppControlsRef = (familyId, childId, useLegacyPath = false) => {
   if (!childId) {
     return null;
   }
-  const childDocRef =
-    typeof collections.children?.doc === 'function'
-      ? collections.children.doc(childId)
-      : doc(collections.children, childId);
 
-  if (typeof childDocRef?.collection === 'function') {
-    return childDocRef.collection('apps');
+  try {
+    if (!useLegacyPath && familyId) {
+      // Primary path: /families/{familyId}/children/{childId}/appControls
+      const familyDocRef =
+        typeof collections.families?.doc === 'function'
+          ? collections.families.doc(familyId)
+          : doc(collections.families, familyId);
+      
+      const childDocRef =
+        typeof familyDocRef?.collection === 'function'
+          ? familyDocRef.collection('children').doc(childId)
+          : doc(collection(familyDocRef, 'children'), childId);
+
+      if (typeof childDocRef?.collection === 'function') {
+        return childDocRef.collection('appControls');
+      }
+      return collection(childDocRef, 'appControls');
+    } else {
+      // Legacy path: /children/{childId}/appControls
+      const childDocRef =
+        typeof collections.children?.doc === 'function'
+          ? collections.children.doc(childId)
+          : doc(collections.children, childId);
+
+      if (typeof childDocRef?.collection === 'function') {
+        return childDocRef.collection('appControls');
+      }
+      return collection(childDocRef, 'appControls');
+    }
+  } catch (error) {
+    console.error('Failed to resolve appControls reference', error);
+    return null;
   }
-  return collection(childDocRef, 'apps');
 };
 
 const attachSnapshot = (ref, onNext, onError) => {
@@ -121,8 +146,12 @@ const buildStatusVersion = (status = {}, fallbackSeed = '') =>
 const extractRemoteBlock = (doc) => {
   const data = doc?.data?.() || {};
   const status = data.status || {};
+  
+  // Check if app is blocked from multiple sources
   const fromStatus = typeof status.isBlocked === 'boolean' ? status.isBlocked : null;
-  const isBlocked = fromStatus !== null ? fromStatus : Boolean(data.isBlocked);
+  const fromBlocked = typeof data.blocked === 'boolean' ? data.blocked : null;
+  const isBlocked = fromStatus !== null ? fromStatus : (fromBlocked !== null ? fromBlocked : Boolean(data.isBlocked));
+  
   if (!isBlocked) {
     return null;
   }
@@ -132,9 +161,10 @@ const extractRemoteBlock = (doc) => {
     return null;
   }
 
+  // Prioritize blockMessage from appControls documents (used by dashboard)
   const message =
-    status.message ||
     data.blockMessage ||
+    status.message ||
     data.message ||
     DEFAULT_MESSAGES.blocked;
   const reason = status.reason || data.blockReason || REMOTE_BLOCK_REASON;
@@ -158,44 +188,73 @@ const evaluateBlockingSafely = () => {
   });
 };
 
-const subscribeToRemoteAppStatus = (childId) => {
+const subscribeToRemoteAppStatus = (familyId, childId) => {
   if (!childId) {
     return () => {};
   }
 
-  try {
-    const appsRef = resolveChildAppsRef(childId);
-    if (!appsRef) {
-      return () => {};
+  let unsubscribe = null;
+  let isSubscribed = false;
+
+  const setupSubscription = (appControlsRef) => {
+    if (!appControlsRef || isSubscribed) {
+      return;
     }
 
-    return attachSnapshot(
-      appsRef,
-      (snapshot) => {
-        const next = new Map();
-        snapshot.forEach((doc) => {
-          const remoteBlock = extractRemoteBlock(doc);
-          if (remoteBlock) {
-            next.set(remoteBlock.packageName, remoteBlock);
-          }
-        });
+    try {
+      unsubscribe = attachSnapshot(
+        appControlsRef,
+        (snapshot) => {
+          isSubscribed = true;
+          const next = new Map();
+          snapshot.forEach((doc) => {
+            const remoteBlock = extractRemoteBlock(doc);
+            if (remoteBlock) {
+              next.set(remoteBlock.packageName, remoteBlock);
+            }
+          });
 
-        remoteAppBlocks = next;
-        Array.from(remoteBlockConfirmations.keys()).forEach((packageName) => {
-          if (!next.has(packageName)) {
-            remoteBlockConfirmations.delete(packageName);
+          remoteAppBlocks = next;
+          Array.from(remoteBlockConfirmations.keys()).forEach((packageName) => {
+            if (!next.has(packageName)) {
+              remoteBlockConfirmations.delete(packageName);
+            }
+          });
+          evaluateBlockingSafely();
+        },
+        (error) => {
+          console.error('Failed to listen to app controls', error);
+          
+          // If primary path fails and we haven't tried legacy path yet, try legacy path
+          if (!isSubscribed && familyId) {
+            console.log('Falling back to legacy appControls path');
+            const legacyRef = resolveAppControlsRef(null, childId, true);
+            if (legacyRef) {
+              setupSubscription(legacyRef);
+            }
           }
-        });
-        evaluateBlockingSafely();
-      },
-      (error) => {
-        console.error('Failed to listen to child app status', error);
-      },
-    );
-  } catch (error) {
-    console.error('Unable to subscribe to child app status', error);
-    return () => {};
+        },
+      );
+    } catch (error) {
+      console.error('Unable to subscribe to app controls', error);
+    }
+  };
+
+  // Try primary path first: /families/{familyId}/children/{childId}/appControls
+  const primaryRef = resolveAppControlsRef(familyId, childId, false);
+  if (primaryRef) {
+    setupSubscription(primaryRef);
+  } else if (!familyId) {
+    // If no familyId, use legacy path directly
+    const legacyRef = resolveAppControlsRef(null, childId, true);
+    if (legacyRef) {
+      setupSubscription(legacyRef);
+    }
   }
+
+  return () => {
+    unsubscribe?.();
+  };
 };
 
 const confirmRemoteBlocks = async (method) => {
@@ -397,7 +456,7 @@ export const startAppEnforcement = (context) => {
     handleControlsUpdate,
   );
   usageUnsubscribe = subscribeToLocalUsageState(handleUsageUpdate);
-  appStatusUnsubscribe = subscribeToRemoteAppStatus(childId);
+  appStatusUnsubscribe = subscribeToRemoteAppStatus(familyId, childId);
 
   evaluateBlockingSafely();
 };

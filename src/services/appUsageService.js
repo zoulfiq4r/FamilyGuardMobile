@@ -3,7 +3,7 @@ import BackgroundTimer from 'react-native-background-timer';
 import DeviceInfo from 'react-native-device-info';
 
 import { addDoc, collection, doc, setDoc } from '@react-native-firebase/firestore';
-import { collections, increment, serverTimestamp, Timestamp } from '../config/firebase';
+import { collections, increment, serverTimestamp, Timestamp, db } from '../config/firebase';
 import { toDateKey } from './appUsageAnalytics';
 
 const { AppUsageModule } = NativeModules;
@@ -214,10 +214,10 @@ const syncSessionToFirestore = async (session) => {
 
   await setDoc(aggregateRef, aggregateUpdate, { merge: true });
 
-  const appDocRef = doc(
-    collection(doc(collections.children, childContext.childId), 'apps'),
-    session.packageName,
-  );
+  // Use modular API path format for sub-collection
+  const childAppsCollectionRef = collection(db, 'children', childContext.childId, 'apps');
+  const appDocRef = doc(childAppsCollectionRef, session.packageName);
+  
   const usageMinutesIncrement = session.durationMs / 60000;
   const childAppUpdate = {
     name: session.appName,

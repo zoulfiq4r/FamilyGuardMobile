@@ -1,10 +1,13 @@
-import Geolocation from '@react-native-community/geolocation';
+// Lazy-load Geolocation to avoid NativeEventEmitter warnings during module initialization
+// (some native modules create a NativeEventEmitter at import time which can warn
+// if the native module doesn't implement the expected listener methods). We'll
+// require it where needed so the emitter is only created when location is actually used.
 import BackgroundTimer from 'react-native-background-timer';
 import DeviceInfo from 'react-native-device-info';
-import { PermissionsAndroid, Platform, Alert } from 'react-native';
+import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 
-import { addDoc, collection, doc, setDoc } from '@react-native-firebase/firestore';
-import { collections, serverTimestamp } from '../config/firebase';
+import { addDoc, setDoc, collection, doc } from '@react-native-firebase/firestore';
+import { collections, serverTimestamp, db } from '../config/firebase';
 
 let locationInterval = null;
 
@@ -61,10 +64,36 @@ export const requestLocationPermission = async (showExplanation = false) => {
 
 const getLocationWithFallback = (options, attempt = 1) =>
   new Promise((resolve, reject) => {
+    // eslint-disable-next-line global-require
+    const geoModule = require('@react-native-community/geolocation');
+    // The geolocation module may be exported as the module itself or as the
+    // `default` property depending on bundler/transpiler. Fall back to the
+    // global `navigator.geolocation` if available.
+    const Geolocation = (geoModule && typeof geoModule.getCurrentPosition === 'function')
+      ? geoModule
+      : (geoModule && typeof geoModule.default === 'object' && typeof geoModule.default.getCurrentPosition === 'function')
+        ? geoModule.default
+        : (global.navigator && global.navigator.geolocation)
+          ? global.navigator.geolocation
+          : geoModule;
+
+    const attemptType = options.enableHighAccuracy ? 'GPS' : 'Network';
+    console.log(`🌍 Attempt ${attempt} (${attemptType}): Starting location fetch...`);
+
     Geolocation.getCurrentPosition(
-      (position) => resolve(position),
+      (position) => {
+        console.log(`✅ Attempt ${attempt} (${attemptType}): Location acquired - ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+        resolve(position);
+      },
       (error) => {
-        if (error.code === 3 && options.enableHighAccuracy && attempt === 1) {
+        const errorMsg = error?.message || 'Unknown error';
+        console.log(`❌ Attempt ${attempt} (${attemptType}): Failed - ${errorMsg} (code: ${error?.code})`);
+
+        // If the first (high-accuracy/GPS) attempt times out or reports
+        // POSITION_UNAVAILABLE, retry once using reduced accuracy (network).
+        const shouldFallback = (error?.code === 3 || error?.code === 2) && options.enableHighAccuracy && attempt === 1;
+        if (shouldFallback) {
+          console.log(`⚠️  GPS failed, attempting fallback with Network...`);
           getLocationWithFallback(
             {
               enableHighAccuracy: false,
@@ -100,6 +129,9 @@ export const sendLocationUpdate = async (childId) => {
   }
 
   try {
+    // First attempt: GPS/high accuracy. If that fails with timeout or
+    // POSITION_UNAVAILABLE, getLocationWithFallback will perform one
+    // fallback attempt using reduced accuracy (network).
     const position = await getLocationWithFallback({
       enableHighAccuracy: true,
       timeout: 20000,
@@ -127,16 +159,15 @@ export const sendLocationUpdate = async (childId) => {
     await addDoc(collections.locations, locationPayload);
 
     const childDocRef = doc(collections.children, childId);
-    await addDoc(
-      collection(childDocRef, 'locations'),
-      {
-        latitude,
-        longitude,
-        accuracy,
-        timestamp,
-        deviceId,
-      },
-    );
+    // For sub-collection, use the modular API correctly with path strings
+    const childLocationsRef = collection(db, 'children', childId, 'locations');
+    await addDoc(childLocationsRef, {
+      latitude,
+      longitude,
+      accuracy,
+      timestamp,
+      deviceId,
+    });
 
     await setDoc(
       childDocRef,
@@ -157,12 +188,26 @@ export const sendLocationUpdate = async (childId) => {
         lastSeen: serverTimestamp(),
       },
       { merge: true },
-      { merge: true },
     );
 
+    console.log(`📍 Location updated for child ${childId}: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
     return { latitude, longitude, accuracy };
   } catch (error) {
-    console.error('❌ Location error:', error);
+    console.error('❌ Location update failed:', error?.message || error);
+
+    // If position unavailable, offer the user a quick way to open settings
+    if (error?.code === 2) {
+      Alert.alert(
+        'Location Unavailable',
+        'No location provider available. Please enable GPS/location services.',
+        [
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          { text: 'OK' },
+        ],
+        { cancelable: true },
+      );
+    }
+
     let message = 'Failed to get location';
     if (error?.code === 1) {
       message = 'Location permission denied';
@@ -171,6 +216,7 @@ export const sendLocationUpdate = async (childId) => {
     } else if (error?.code === 3) {
       message = 'Location request timed out.';
     }
+
     throw new Error(message);
   }
 };

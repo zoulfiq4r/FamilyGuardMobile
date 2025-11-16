@@ -19,6 +19,7 @@ const buildCollection = (name) => collection(db, name);
 export const collections = {
   users: buildCollection('users'),
   children: buildCollection('children'),
+  families: buildCollection('families'),
   devices: buildCollection('devices'),
   pairingCodes: buildCollection('pairingCodes'),
   locations: buildCollection('locations'),

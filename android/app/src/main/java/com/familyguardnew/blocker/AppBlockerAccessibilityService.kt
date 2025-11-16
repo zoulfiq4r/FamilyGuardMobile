@@ -20,6 +20,7 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.LinearLayout
 
 class AppBlockerAccessibilityService : AccessibilityService() {
   private val mainHandler = Handler(Looper.getMainLooper())
@@ -151,26 +152,52 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
   private fun createOverlayView(): View {
     val container = FrameLayout(this).apply {
-      setBackgroundColor(Color.parseColor("#CC111827"))
+      // Modern dark gradient-like background (semi-transparent)
+      setBackgroundColor(Color.parseColor("#E6000000")) // 90% opacity black
       isClickable = true
       isFocusable = true
     }
 
+    // Create a vertical layout for icon + message
+    val contentLayout = LinearLayout(this).apply {
+      orientation = LinearLayout.VERTICAL
+      gravity = Gravity.CENTER
+      setPadding(64, 64, 64, 64)
+    }
+
+    // Add a lock icon (emoji)
+    val iconView = TextView(this).apply {
+      text = "🔒" // Lock emoji as icon
+      textSize = 72f // Large icon
+      gravity = Gravity.CENTER
+      setPadding(0, 0, 0, 32) // Space below icon
+    }
+
+    // Main message text
     val text = TextView(this).apply {
-      setPadding(48, 48, 48, 48)
-      textSize = 22f
+      textSize = 24f
       setTextColor(Color.WHITE)
       text = "Blocked by Parent"
       gravity = Gravity.CENTER
-      setLineSpacing(1.1f, 1.2f)
+      setLineSpacing(8f, 1.3f)
+      
+      // Modern styling
+      typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+      setShadowLayer(4f, 0f, 2f, Color.parseColor("#80000000"))
+      letterSpacing = 0.02f
     }
     messageView = text
 
+    // Add views to content layout
+    contentLayout.addView(iconView)
+    contentLayout.addView(text)
+
+    // Add content layout to container
     container.addView(
-      text,
+      contentLayout,
       FrameLayout.LayoutParams(
         FrameLayout.LayoutParams.MATCH_PARENT,
-        FrameLayout.LayoutParams.MATCH_PARENT,
+        FrameLayout.LayoutParams.WRAP_CONTENT,
       ).apply {
         gravity = Gravity.CENTER
       },
@@ -220,8 +247,11 @@ class AppBlockerAccessibilityService : AccessibilityService() {
     lastForceCloseTimestamp = now
 
     runCatching {
-      performGlobalAction(GLOBAL_ACTION_BACK)
-      mainHandler.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, 150L)
+      // Delay to allow user to read the block message
+      mainHandler.postDelayed({
+        performGlobalAction(GLOBAL_ACTION_BACK)
+        mainHandler.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, 150L)
+      }, 2000L) // 2 second delay before closing app
     }.onFailure { error ->
       Log.w(TAG, "Failed to close blocked app via accessibility", error)
     }
@@ -229,6 +259,6 @@ class AppBlockerAccessibilityService : AccessibilityService() {
 
   companion object {
     private const val TAG = "AppBlockerService"
-    private const val FORCE_CLOSE_DEBOUNCE_MS = 1200L
+    private const val FORCE_CLOSE_DEBOUNCE_MS = 3000L // Increased from 1200ms
   }
 }
