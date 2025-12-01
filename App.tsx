@@ -11,6 +11,7 @@ import AboutScreen from './src/screens/AboutScreen';
 import BlockAppsScreen from './src/screens/BlockAppsScreen';
 
 import { testFirebaseConnection } from './src/config/firebase';
+import auth from '@react-native-firebase/auth';
 import { startLocationTracking, stopLocationTracking } from './src/services/locationService';
 import { refreshForegroundApp, startAppUsageTracking, stopAppUsageTracking } from './src/services/appUsageService';
 import { fetchExistingDevicePairing } from './src/services/pairingService';
@@ -65,9 +66,36 @@ function App() {
     overlay: false,
     batteryOptimization: false,
   });
+  const [authReady, setAuthReady] = useState(false);
 
+  // Authenticate (anonymous) first, then test connection (after auth).
   useEffect(() => {
-    testFirebaseConnection();
+    let cancelled = false;
+    const init = async () => {
+      try {
+        const instance = auth();
+        if (!instance.currentUser) {
+          await instance.signInAnonymously();
+          if (!cancelled) {
+            console.log('🔐 Anonymous Firebase auth established');
+          }
+        } else if (!cancelled) {
+          console.log('🔐 Firebase user already signed in');
+        }
+      } catch (error) {
+        console.error('❌ Anonymous auth failed (provider disabled?):', error);
+      } finally {
+        if (!cancelled) {
+          setAuthReady(true);
+          // Connection test after auth; ignore permission issues silently here.
+          testFirebaseConnection();
+        }
+      }
+    };
+    init();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const refreshBlockerPermissions = useCallback(async () => {
@@ -117,7 +145,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!childContext?.childId) {
+    if (!authReady || !childContext?.childId) {
       stopAppEnforcement();
       return undefined;
     }
@@ -133,7 +161,7 @@ function App() {
     return () => {
       stopAppEnforcement();
     };
-  }, [childContext, refreshBlockerPermissions]);
+  }, [childContext, refreshBlockerPermissions, authReady]);
 
   const handlePaired = useCallback(
     async (result: { success: boolean; childId?: string; parentId?: string; childName?: string }) => {
@@ -194,6 +222,9 @@ function App() {
   );
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
     let isActive = true;
 
     const restorePairingState = async () => {
@@ -250,7 +281,7 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [handlePaired]);
+  }, [handlePaired, authReady]);
 
   const handleNavigateToSettings = useCallback(() => {
     setCurrentScreen('settings');

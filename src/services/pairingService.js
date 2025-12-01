@@ -11,6 +11,7 @@ import {
   updateDoc,
   where,
 } from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import { collections, serverTimestamp } from '../config/firebase';
 
 const PAIRING_EXPIRY_MS = 10 * 60 * 1000;
@@ -141,6 +142,7 @@ export const validateAndPairDevice = async (pairingCode) => {
       deviceName,
       lastPaired: serverTimestamp(),
       isPaired: true,
+      authUid: auth().currentUser?.uid, // Store anonymous auth UID for security rules
     });
 
     console.log('✅ Device paired successfully:', {

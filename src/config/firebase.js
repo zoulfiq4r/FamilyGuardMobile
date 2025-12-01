@@ -38,18 +38,23 @@ export const generatePairingCode = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
 export const testFirebaseConnection = async () => {
+  // This diagnostic write can fail if rules don't allow /test/**.
+  // We keep it silent on permission errors.
   try {
     console.log('🔥 Testing Firebase connection...');
     const connectionDoc = doc(buildCollection('test'), 'connection');
     await setDoc(connectionDoc, {
       timestamp: serverTimestamp(),
-      message: 'Firebase connected successfully from React Native!',
-      device: 'Android',
+      ok: true,
     });
-    console.log('✅ Firebase Firestore connected!');
+    console.log('✅ Firebase Firestore test write succeeded');
     return true;
   } catch (error) {
-    console.error('❌ Firebase connection failed:', error);
+    if (String(error?.code).includes('permission')) {
+      console.log('ℹ️ Firebase test skipped due to rules (permission-denied).');
+      return false;
+    }
+    console.error('❌ Firebase connection test error:', error);
     return false;
   }
 };
