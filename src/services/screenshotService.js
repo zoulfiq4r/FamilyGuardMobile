@@ -109,6 +109,12 @@ const compressImageToBase64 = async (screenshotUri, maxSizeBytes = MAX_IMAGE_SIZ
  * @returns {Promise<{base64: string, timestamp: number, packageName: string, appName: string} | null>}
  */
 export const captureScreenshot = async (packageName, appName) => {
+  // Don't capture excluded apps
+  if (isExcludedApp(packageName)) {
+    console.log(`🚫 Skipping excluded app: ${appName} (${packageName})`);
+    return null;
+  }
+
   if (!canCapture(packageName)) {
     console.log(`⏱️  Screenshot cooldown active for ${appName} (${packageName})`);
     return null;

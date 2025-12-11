@@ -26,95 +26,171 @@ jest.mock('@react-native-firebase/auth', () => {
 jest.mock('@react-native-firebase/firestore', () => {
   const collections = new Map();
 
-  const makeDoc = (path) => ({
-    id: path.split('/').pop() || 'mockDocId',
-    set: jest.fn(async () => {}),
-    update: jest.fn(async () => {}),
-    get: jest.fn(async () => ({ exists: false, data: () => ({}) })),
-    collection: jest.fn((child) => ensureCollection(`${path}/${child}`)),
+  // Create a simple mock doc reference
+  const makeDocRef = (path) => ({
+    id: path.split('/').pop(),
+    _path: path,
+    set: jest.fn(async () => ({})),
+    update: jest.fn(async () => ({})),
+    delete: jest.fn(async () => ({})),
+    get: jest.fn(async () => ({
+      exists: () => true,
+      data: () => ({}),
+      id: path.split('/').pop(),
+    })),
+    collection: jest.fn((childPath) => makeCollectionRef(`${path}/${childPath}`)),
   });
 
-  const ensureCollection = (name) => {
-    if (collections.has(name)) {
-      return collections.get(name);
+  // Create a simple mock collection reference
+  const makeCollectionRef = (path) => {
+    if (collections.has(path)) {
+      return collections.get(path);
     }
 
     const collectionRef = {
-      name,
-      add: jest.fn(async (payload) => ({ id: `${name}-doc`, payload })),
-      doc: jest.fn((id = `${name}-doc`) => makeDoc(`${name}/${id}`)),
-      get: jest.fn(async () => ({ empty: true, docs: [] })),
-      onSnapshot: jest.fn((success) => {
-        success?.({ forEach: () => {} });
+      _path: path,
+      _docs: [],
+      add: jest.fn(async (data) => ({
+        id: `doc-${Date.now()}`,
+        ...makeDocRef(`${path}/doc-${Date.now()}`),
+      })),
+      doc: jest.fn((docId) => {
+        const docPath = `${path}/${docId}`;
+        const existing = collections.get(docPath);
+        if (existing) return existing;
+        const newDoc = makeDocRef(docPath);
+        collections.set(docPath, newDoc);
+        return newDoc;
+      }),
+      get: jest.fn(async () => ({
+        empty: collectionRef._docs.length === 0,
+        docs: collectionRef._docs,
+        forEach: (cb) => collectionRef._docs.forEach(cb),
+      })),
+      onSnapshot: jest.fn((success, error) => {
+        const snapshot = {
+          empty: collectionRef._docs.length === 0,
+          docs: collectionRef._docs,
+          forEach: (cb) => collectionRef._docs.forEach(cb),
+        };
+        success?.(snapshot);
         return jest.fn();
       }),
     };
-    collections.set(name, collectionRef);
+    collections.set(path, collectionRef);
     return collectionRef;
   };
 
-  const collectionFn = jest.fn((rootOrRef, path) => {
-    if (rootOrRef && typeof rootOrRef.collection === 'function' && path) {
-      return rootOrRef.collection(path);
-    }
-    if (typeof rootOrRef === 'string' && !path) {
-      return ensureCollection(rootOrRef);
-    }
-    if (path) {
-      return ensureCollection(path);
-    }
-    return ensureCollection(rootOrRef);
-  });
-
-  const docFn = jest.fn((collectionRef, id) => collectionRef.doc(id));
-
-  const module = {
-    getFirestore: jest.fn(() => ({})),
-    collection: collectionFn,
-    doc: docFn,
-    addDoc: jest.fn(async (collectionRef, payload) => collectionRef.add(payload)),
-    setDoc: jest.fn(async (docRef, data, options) => docRef.set(data, options)),
-    updateDoc: jest.fn(async (docRef, data) => docRef.update(data)),
-    getDocs: jest.fn(async (collectionRef) => collectionRef.get()),
-    getDoc: jest.fn(async (docRef) => docRef.get()),
-    query: jest.fn((collectionRef, ...constraints) => {
-      return constraints.reduce((ref, constraint) => {
-        if (!constraint || typeof constraint !== 'object') {
-          return ref;
-        }
-        switch (constraint.__type) {
-          case 'where':
-            return ref.where(constraint.field, constraint.op, constraint.value);
-          case 'orderBy':
-            return ref.orderBy(constraint.field, constraint.direction);
-          case 'limit':
-            return ref.limit(constraint.value);
-          default:
-            return ref;
-        }
-      }, collectionRef);
+  return {
+    __esModule: true,
+    getFirestore: jest.fn(() => ({
+      _path: 'db',
+    })),
+    collection: jest.fn((dbOrRef, path) => {
+      // Handle: collection(db, 'path') or collection(docRef, 'subcollection')
+      if (dbOrRef && dbOrRef._path && path) {
+        // docRef.collection('sub')
+        return makeCollectionRef(`${dbOrRef._path}/${path}`);
+      } else if (typeof path === 'string') {
+        // db.collection('path')
+        return makeCollectionRef(path);
+      }
+      return makeCollectionRef('unknown');
     }),
-    where: jest.fn((field, op, value) => ({ __type: 'where', field, op, value })),
-    orderBy: jest.fn((field, direction) => ({ __type: 'orderBy', field, direction })),
-    limit: jest.fn((value) => ({ __type: 'limit', value })),
-    onSnapshot: jest.fn((ref, success, error) => ref.onSnapshot(success, error)),
+    doc: jest.fn((dbOrCollectionOrPath, maybeDocId) => {
+      // Handle: doc(db, "path") or doc(collectionRef, id)
+      if (typeof maybeDocId === 'string') {
+        // This is doc(something, id)
+        const collectionPath = (dbOrCollectionOrPath && dbOrCollectionOrPath._path) || '';
+        const fullPath = collectionPath ? `${collectionPath}/${maybeDocId}` : maybeDocId;
+        return makeDocRef(fullPath);
+      } else if (typeof dbOrCollectionOrPath === 'string') {
+        // This is doc(db, path) with a path string
+        return makeDocRef(dbOrCollectionOrPath);
+      }
+      return makeDocRef('unknown');
+    }),
+    deleteDoc: jest.fn(async (docRef) => {
+      if (typeof docRef.delete === 'function') {
+        return docRef.delete();
+      }
+    }),
+    getDocs: jest.fn(async (collectionRef) => {
+      if (typeof collectionRef.get === 'function') {
+        return collectionRef.get();
+      }
+      return { empty: true, docs: [], forEach: () => {} };
+    }),
+    getDoc: jest.fn(async (docRef) => {
+      if (typeof docRef.get === 'function') {
+        return docRef.get();
+      }
+      return { exists: () => false, data: () => ({}) };
+    }),
+    onSnapshot: jest.fn((collectionRef, success, error) => {
+      if (typeof collectionRef.onSnapshot === 'function') {
+        return collectionRef.onSnapshot(success, error);
+      }
+      success?.({ empty: true, docs: [], forEach: () => {} });
+      return jest.fn();
+    }),
+    setDoc: jest.fn(async (docRef, data) => {
+      if (typeof docRef.set === 'function') {
+        return docRef.set(data);
+      }
+    }),
+    updateDoc: jest.fn(async (docRef, data) => {
+      if (typeof docRef.update === 'function') {
+        return docRef.update(data);
+      }
+    }),
+    addDoc: jest.fn(async (collectionRef, data) => {
+      if (typeof collectionRef.add === 'function') {
+        return collectionRef.add(data);
+      }
+    }),
+    query: jest.fn((collectionRef) => collectionRef),
+    where: jest.fn(() => ({})),
+    orderBy: jest.fn(() => ({})),
+    limit: jest.fn(() => ({})),
     serverTimestamp: jest.fn(() => new Date()),
-    increment: jest.fn((value = 1) => ({ __increment__: value })),
+    increment: jest.fn((value) => value),
     Timestamp: {
-      fromDate: (date) => ({
-        toDate: () => date,
-        toMillis: () => date.getTime(),
-        seconds: Math.floor(date.getTime() / 1000),
-        nanoseconds: (date.getTime() % 1000) * 1_000_000,
-      }),
+      fromDate: (date) => date,
+      now: () => new Date(),
     },
     FieldValue: {
-      serverTimestamp: jest.fn(() => new Date()),
-      increment: jest.fn((value = 1) => ({ __increment__: value })),
+      serverTimestamp: () => new Date(),
+      increment: (value) => value,
     },
   };
+});
 
-  return module;
+jest.mock('@react-native-firebase/functions', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({})),
+  getFunctions: jest.fn(() => ({})),
+  httpsCallable: jest.fn(() => jest.fn(async () => ({ data: {} }))),
+}));
+
+jest.mock('@react-native-firebase/storage', () => {
+  const mockRef = {
+    child: jest.fn(function() { return this; }),
+    put: jest.fn(async () => ({ ref: {} })),
+    putString: jest.fn(async () => ({ ref: {} })),
+    getDownloadURL: jest.fn(async () => 'https://example.com/image.jpg'),
+    delete: jest.fn(async () => {}),
+  };
+
+  return {
+    __esModule: true,
+    default: {
+      ref: jest.fn(() => mockRef),
+      storage: jest.fn(() => ({
+        ref: jest.fn(() => mockRef),
+      })),
+    },
+  };
 });
 
 jest.mock('react-native-device-info', () => ({

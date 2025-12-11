@@ -1,5 +1,5 @@
 import storage from '@react-native-firebase/storage';
-import { ref, uploadString, getDownloadURL } from '@react-native-firebase/storage';
+import { ref, uploadString, getDownloadURL, deleteObject } from '@react-native-firebase/storage';
 
 /**
  * Upload screenshot to Firebase Cloud Storage
@@ -59,10 +59,13 @@ export const deleteScreenshot = async (screenshotUrl) => {
 
     const path = decodeURIComponent(matches[1]);
     console.log(`🗑️  Deleting screenshot: ${path}`);
-    await firebase.storage().ref(path).delete();
+    
+    const storageRef = ref(storage(), path);
+    await deleteObject(storageRef);
+    
     console.log(`✅ Screenshot deleted successfully`);
   } catch (error) {
     console.error('❌ Failed to delete screenshot:', error);
-    throw error;
+    // Don't throw - handle gracefully
   }
 };

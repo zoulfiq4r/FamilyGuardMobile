@@ -14,4 +14,3 @@ describe('AboutScreen', () => {
     expect(onBack).toHaveBeenCalled();
   });
 });
-
