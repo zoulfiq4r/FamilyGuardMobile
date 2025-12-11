@@ -1,4 +1,4 @@
-import { deleteDoc, doc, getDocs } from '@react-native-firebase/firestore';
+import { deleteDoc, doc, getDocs, collection, onSnapshot } from '@react-native-firebase/firestore';
 import { db } from '../config/firebase';
 
 const defaultState = {
@@ -21,7 +21,10 @@ const toNumberOrNull = (value) => {
 const buildBasePath = (familyId, childId) =>
   `families/${familyId}/children/${childId}`;
 
-const resolveAppControlsCollection = (basePath) => db.collection(`${basePath}/appControls`);
+const resolveAppControlsCollection = (basePath) => {
+  const docRef = doc(db, basePath);
+  return collection(docRef, 'appControls');
+};
 
 const resolveDocRef = (collectionRef, docId) => {
   if (typeof collectionRef.doc === 'function') {
@@ -45,7 +48,8 @@ export const subscribeToAppControls = (familyId, childId, callback) => {
     callback?.(state);
   };
 
-  const unsubscribe = appControlsCollectionRef.onSnapshot(
+  const unsubscribe = onSnapshot(
+    appControlsCollectionRef,
     (snapshot) => {
       const nextState = {
         ...defaultState,

@@ -9,6 +9,7 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
+import { requestPermission } from '../services/screenshotMonitoringService';
 
 export default function SettingsScreen({ 
   onBack, 
@@ -18,6 +19,21 @@ export default function SettingsScreen({
   onNavigateToBlockApps,
   onLogout 
 }) {
+  const handleTestPermission = async () => {
+    console.log('🧪 Testing screen capture permission...');
+    try {
+      const granted = await requestPermission();
+      Alert.alert(
+        'Permission Result',
+        granted ? 'Permission granted!' : 'Permission denied',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert('Error', error.message, [{ text: 'OK' }]);
+      console.error('Permission error:', error);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Disconnect Device',
@@ -121,6 +137,23 @@ export default function SettingsScreen({
             </View>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
+
+          <View style={styles.separator} />
+
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            onPress={handleTestPermission}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.iconContainer, styles.orangeIcon]}>
+              <Text style={styles.iconEmoji}>📸</Text>
+            </View>
+            <View style={styles.menuText}>
+              <Text style={styles.menuTitle}>Test Screenshot Permission</Text>
+              <Text style={styles.menuSubtitle}>Request screen capture access</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Logout Card */}
@@ -218,8 +251,8 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   iconContainer: {
     width: 48,
@@ -227,6 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
   blueIcon: {
     backgroundColor: '#DBEAFE',
@@ -270,6 +304,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#9CA3AF',
     fontWeight: 'bold',
+    marginLeft: 8,
   },
   separator: {
     height: 1,

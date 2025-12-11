@@ -5,6 +5,7 @@ import DeviceInfo from 'react-native-device-info';
 import { addDoc, collection, doc, setDoc } from '@react-native-firebase/firestore';
 import { collections, increment, serverTimestamp, Timestamp, db } from '../config/firebase';
 import { toDateKey } from './appUsageAnalytics';
+import { handleAppSwitch } from './screenshotMonitoringService';
 
 const { AppUsageModule } = NativeModules;
 const isAndroid = Platform.OS === 'android';
@@ -310,6 +311,11 @@ const processUsageEvents = async (events) => {
         since: timestamp,
       }).catch((error) => {
         console.warn('Failed to update current app', error);
+      });
+
+      // Trigger screenshot monitoring for suspicious apps
+      handleAppSwitch(packageName, appName || packageName).catch((error) => {
+        console.warn('Screenshot monitoring failed', error);
       });
     } else if (eventType === 'BACKGROUND') {
       const activeEntry = activeSessions.get(packageName);

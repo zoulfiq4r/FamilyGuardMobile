@@ -28,6 +28,8 @@ export const collections = {
   alerts: buildCollection('alerts'),
   appUsageSessions: buildCollection('appUsageSessions'),
   appUsageAggregates: buildCollection('appUsageAggregates'),
+  contentAlerts: buildCollection('contentAlerts'),
+  firestore: db,
 };
 
 export const serverTimestamp = () => firestoreServerTimestamp();

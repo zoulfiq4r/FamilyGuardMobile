@@ -72,30 +72,12 @@ const resolveAppControlsRef = (familyId, childId, useLegacyPath = false) => {
   try {
     if (!useLegacyPath && familyId) {
       // Primary path: /families/{familyId}/children/{childId}/appControls
-      const familyDocRef =
-        typeof collections.families?.doc === 'function'
-          ? collections.families.doc(familyId)
-          : doc(collections.families, familyId);
-      
-      const childDocRef =
-        typeof familyDocRef?.collection === 'function'
-          ? familyDocRef.collection('children').doc(childId)
-          : doc(collection(familyDocRef, 'children'), childId);
-
-      if (typeof childDocRef?.collection === 'function') {
-        return childDocRef.collection('appControls');
-      }
+      const familyDocRef = doc(collections.families, familyId);
+      const childDocRef = doc(collection(familyDocRef, 'children'), childId);
       return collection(childDocRef, 'appControls');
     } else {
       // Legacy path: /children/{childId}/appControls
-      const childDocRef =
-        typeof collections.children?.doc === 'function'
-          ? collections.children.doc(childId)
-          : doc(collections.children, childId);
-
-      if (typeof childDocRef?.collection === 'function') {
-        return childDocRef.collection('appControls');
-      }
+      const childDocRef = doc(collections.children, childId);
       return collection(childDocRef, 'appControls');
     }
   } catch (error) {
@@ -105,9 +87,7 @@ const resolveAppControlsRef = (familyId, childId, useLegacyPath = false) => {
 };
 
 const attachSnapshot = (ref, onNext, onError) => {
-  if (typeof ref?.onSnapshot === 'function') {
-    return ref.onSnapshot(onNext, onError);
-  }
+  return onSnapshot(ref, onNext, onError);
   return onSnapshot(ref, onNext, onError);
 };
 

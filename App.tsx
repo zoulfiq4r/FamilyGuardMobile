@@ -10,8 +10,8 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import AboutScreen from './src/screens/AboutScreen';
 import BlockAppsScreen from './src/screens/BlockAppsScreen';
 
-import { testFirebaseConnection } from './src/config/firebase';
-import auth from '@react-native-firebase/auth';
+import { testFirebaseConnection, auth } from './src/config/firebase';
+import { signInAnonymously } from '@react-native-firebase/auth';
 import { startLocationTracking, stopLocationTracking } from './src/services/locationService';
 import { refreshForegroundApp, startAppUsageTracking, stopAppUsageTracking } from './src/services/appUsageService';
 import { fetchExistingDevicePairing } from './src/services/pairingService';
@@ -28,6 +28,11 @@ import {
   loadStoredChildContext,
   persistChildContext,
 } from './src/services/storageService';
+import {
+  initializeScreenshotMonitoring,
+  cleanupScreenshotMonitoring,
+  updatePairingData,
+} from './src/services/screenshotMonitoringService';
 
 type Screen =
   | 'splash'
@@ -73,9 +78,8 @@ function App() {
     let cancelled = false;
     const init = async () => {
       try {
-        const instance = auth();
-        if (!instance.currentUser) {
-          await instance.signInAnonymously();
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
           if (!cancelled) {
             console.log('🔐 Anonymous Firebase auth established');
           }
@@ -141,6 +145,7 @@ function App() {
       stopLocationTracking();
       stopAppUsageTracking();
       stopAppEnforcement();
+      cleanupScreenshotMonitoring();
     };
   }, []);
 
@@ -178,6 +183,10 @@ function App() {
 
       setChildContext(context);
       await persistChildContext(context);
+
+      // Initialize screenshot monitoring with pairing data
+      await initializeScreenshotMonitoring();
+      updatePairingData(context);
 
       try {
         console.log('🚀 Starting location tracking for child:', result.childId);

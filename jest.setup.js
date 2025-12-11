@@ -157,3 +157,30 @@ jest.mock('react-native/Libraries/Alert/Alert', () => {
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+jest.mock('react-native-fs', () => ({
+  readFile: jest.fn(),
+  writeFile: jest.fn(),
+  unlink: jest.fn(),
+  exists: jest.fn(),
+  mkdir: jest.fn(),
+  readDir: jest.fn(),
+  stat: jest.fn(),
+  DocumentDirectoryPath: '/mock/documents',
+  CachesDirectoryPath: '/mock/cache',
+  TemporaryDirectoryPath: '/mock/tmp',
+}));
+
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true,
+  default: {
+    fetch: jest.fn(() => Promise.resolve({ isConnected: true, isInternetReachable: true })),
+    addEventListener: jest.fn(() => jest.fn()),
+  },
+  NetInfoStateType: {
+    unknown: 'unknown',
+    none: 'none',
+    cellular: 'cellular',
+    wifi: 'wifi',
+  },
+}));
