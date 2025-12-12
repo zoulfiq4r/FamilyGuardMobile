@@ -32,6 +32,7 @@ import {
   initializeScreenshotMonitoring,
   cleanupScreenshotMonitoring,
   updatePairingData,
+  requestPermission,
 } from './src/services/screenshotMonitoringService';
 
 type Screen =
@@ -56,6 +57,7 @@ type PermissionState = {
   accessibility: boolean;
   overlay: boolean;
   batteryOptimization: boolean;
+  screenshot: boolean;
 };
 
 const SPLASH_DELAY_MS = 2000;
@@ -70,6 +72,7 @@ function App() {
     accessibility: false,
     overlay: false,
     batteryOptimization: false,
+    screenshot: false,
   });
   const [authReady, setAuthReady] = useState(false);
 
@@ -352,6 +355,7 @@ function App() {
       accessibility: false,
       overlay: false,
       batteryOptimization: false,
+      screenshot: false,
     });
     setCurrentScreen('pairing');
   }, []);
@@ -436,6 +440,21 @@ function App() {
     }
   }, [childContext]);
 
+  const handleRequestScreenshotPermission = useCallback(async () => {
+    try {
+      console.log('🔐 App: handleRequestScreenshotPermission called');
+      const granted = await requestPermission();
+      console.log('🔐 App: Permission result =', granted);
+      setPermissionState((prev) => ({
+        ...prev,
+        screenshot: granted,
+      }));
+      console.log('🔐 App: Permission state updated to', granted);
+    } catch (error) {
+      console.error('Failed to request screenshot permission', error);
+    }
+  }, []);
+
   return (
     <SafeAreaProvider>
       {currentScreen === 'splash' && <SplashScreen />}
@@ -467,9 +486,16 @@ function App() {
           onRequestOverlay={handleRequestOverlayPermission}
           onRequestBatteryOptimization={handleRequestBatteryOptimization}
           onRequestLocation={handleRequestLocationPermission}
+          onRequestScreenshotPermission={handleRequestScreenshotPermission}
         />
       )}
-      {currentScreen === 'profile' && <ProfileScreen onBack={handleBack} />}
+      {currentScreen === 'profile' && (
+        <ProfileScreen
+          onBack={handleBack}
+          childContext={childContext}
+          permissionState={permissionState}
+        />
+      )}
       {currentScreen === 'about' && <AboutScreen onBack={handleBack} />}
       {currentScreen === 'blockApps' && (
         <BlockAppsScreen onBack={handleBack} childContext={childContext} />

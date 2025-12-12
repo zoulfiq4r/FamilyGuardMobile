@@ -7,8 +7,9 @@ describe('AboutScreen', () => {
     const onBack = jest.fn();
     const { getByText, getByTestId } = render(<AboutScreen onBack={onBack} />);
 
-    expect(getByText('Features:')).toBeTruthy();
+    expect(getByText('Feature Highlights')).toBeTruthy();
     expect(getByText('Support')).toBeTruthy();
+    expect(getByText('zoulfiqar.kanso@gmail.com')).toBeTruthy();
 
     fireEvent.press(getByTestId('about-back-button'));
     expect(onBack).toHaveBeenCalled();

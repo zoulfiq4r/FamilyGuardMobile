@@ -313,5 +313,100 @@ describe('screenshotService', () => {
       // Should handle errors gracefully
       expect(result).toBeDefined();
     });
+
+    it('should handle permission errors by requiring re-grant in Settings', async () => {
+      // Grant permission first
+      ScreenCaptureModule.requestPermission.mockResolvedValueOnce(true);
+      await requestScreenCapturePermission();
+
+      // Capture fails with permission error
+      ScreenCaptureModule.captureScreen.mockRejectedValueOnce(
+        new Error('permission not granted')
+      );
+
+      const result = await captureScreenshot('com.test', 'Test App');
+      
+      // Should return null and revoke permission
+      expect(result).toBeNull();
+      expect(isScreenCapturePermissionGranted()).toBe(false);
+    });
+
+    it('should enforce cooldown between captures for same app', async () => {
+      const now = Date.now();
+      jest.spyOn(Date, 'now').mockReturnValue(now);
+
+      ScreenCaptureModule.requestPermission.mockResolvedValueOnce(true);
+      await requestScreenCapturePermission();
+
+      ScreenCaptureModule.captureScreen.mockResolvedValueOnce({
+        base64: 'test1',
+        width: 1080,
+        height: 1920,
+        size: 50000,
+      });
+
+      // First capture succeeds
+      const result1 = await captureScreenshot('com.app', 'App');
+      expect(result1).not.toBeNull();
+
+      // Second capture immediately returns null due to cooldown
+      const result2 = await captureScreenshot('com.app', 'App');
+      expect(result2).toBeNull();
+    });
+
+    it('should return null when permission not granted', async () => {
+      // Don't grant permission
+      
+      const result = await captureScreenshot('com.test', 'Test');
+      
+      // Should return null immediately without calling capture
+      expect(result).toBeNull();
+      expect(ScreenCaptureModule.captureScreen).not.toHaveBeenCalled();
+    });
+
+    it('should track permission state correctly', async () => {
+      ScreenCaptureModule.requestPermission.mockResolvedValueOnce(true);
+
+      const granted = await requestScreenCapturePermission();
+      expect(granted).toBe(true);
+      expect(isScreenCapturePermissionGranted()).toBe(true);
+    });
+
+    it('should clear permission state on demand', async () => {
+      ScreenCaptureModule.requestPermission.mockResolvedValueOnce(true);
+      await requestScreenCapturePermission();
+      expect(isScreenCapturePermissionGranted()).toBe(true);
+
+      // Clear permission
+      jest.clearAllMocks();
+      const granted = await requestScreenCapturePermission();
+      expect(ScreenCaptureModule.requestPermission).toHaveBeenCalled();
+    });
+
+    it('should handle large screenshot size gracefully', async () => {
+      ScreenCaptureModule.requestPermission.mockResolvedValueOnce(true);
+      await requestScreenCapturePermission();
+
+      ScreenCaptureModule.captureScreen.mockResolvedValueOnce({
+        base64: 'x'.repeat(6000000), // Larger than 500KB
+        width: 1080,
+        height: 1920,
+        size: 6000000,
+      });
+
+      const result = await captureScreenshot('com.test', 'Test');
+      // Should handle large files
+      expect(result).toBeDefined();
+    });
+
+    it('should identify suspicious apps correctly', () => {
+      expect(isSuspiciousApp('com.whatsapp')).toBe(true);
+      expect(isSuspiciousApp('com.facebook.katana')).toBe(true);
+      expect(isSuspiciousApp('com.samsung.notes')).toBe(false);
+    });
+
+    it('should exclude system apps from capturing', () => {
+      expect(isSuspiciousApp('com.android.systemui')).toBe(false);
+    });
   });
 });

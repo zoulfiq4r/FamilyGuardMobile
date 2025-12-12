@@ -16,16 +16,24 @@ let isCaptureInProgress = false;
 
 /**
  * Restore permission state from AsyncStorage (called on app init)
- * Note: MediaProjection permission doesn't persist, so we clear any stored state
+ * IMPORTANT: Does NOT auto-request permission (MediaProjection tokens are per-session)
+ * User must explicitly grant via requestScreenCapturePermission() each session
  */
 export const restorePermissionState = async () => {
   try {
-    // MediaProjection permission doesn't survive app restarts, so clear any stale state
-    isPermissionGranted = false;
-    await AsyncStorage.removeItem(PERMISSION_GRANTED_KEY);
-    console.log('📸 Screen capture permission cleared - user must grant from Settings');
+    const wasGranted = await AsyncStorage.getItem(PERMISSION_GRANTED_KEY);
+    
+    if (wasGranted === 'true') {
+      // Previously granted, but tokens expire per session - require explicit request
+      isPermissionGranted = false; // Reset; user must re-grant
+      console.log('📸 Screen capture: permission must be re-granted (tokens expire per session)');
+    } else {
+      isPermissionGranted = false;
+      console.log('📸 Screen capture permission not granted');
+    }
   } catch (error) {
-    console.error('Failed to clear permission state:', error);
+    console.error('Failed to restore permission state:', error);
+    isPermissionGranted = false;
   }
 };
 
@@ -37,7 +45,20 @@ export const isScreenCapturePermissionGranted = () => {
 };
 
 /**
- * Request screen capture permission (one-time, persists)
+ * Clear permission state (for testing or manual reset)
+ */
+export const clearPermissionState = async () => {
+  try {
+    isPermissionGranted = false;
+    await AsyncStorage.removeItem(PERMISSION_GRANTED_KEY);
+    console.log('📸 Screen capture permission cleared');
+  } catch (error) {
+    console.error('Failed to clear permission state:', error);
+  }
+};
+
+/**
+ * Request screen capture permission (one-time setup, persists across sessions)
  */
 export const requestScreenCapturePermission = async () => {
   if (!ScreenCaptureModule) {
@@ -45,13 +66,22 @@ export const requestScreenCapturePermission = async () => {
   }
 
   try {
-    await ScreenCaptureModule.requestPermission();
+    console.log('📸 Requesting MediaProjection permission from native module...');
+    const result = await ScreenCaptureModule.requestPermission();
+    console.log('📸 Native requestPermission resolved:', result);
+    
     isPermissionGranted = true;
-    console.log('✅ Screen capture permission granted (valid until app closes)');
+    
+    // Persist permission state so we know permission was granted
+    await AsyncStorage.setItem(PERMISSION_GRANTED_KEY, 'true');
+    
+    console.log('✅ Screen capture permission granted and saved');
     return true;
   } catch (error) {
-    console.error('❌ Screen capture permission denied:', error);
+    console.error('❌ Screen capture permission denied/error:', error);
     isPermissionGranted = false;
+    await AsyncStorage.removeItem(PERMISSION_GRANTED_KEY);
+    console.log('📸 Permission state reset to false after error');
     return false;
   }
 };
@@ -103,7 +133,7 @@ const compressImageToBase64 = async (screenshotUri, maxSizeBytes = MAX_IMAGE_SIZ
 
 /**
  * Capture a screenshot and return base64 encoded image
- * Requests fresh permission before each capture since Android MediaProjection tokens timeout
+ * Only captures if permission was previously granted in Settings
  * @param {string} packageName - Package name of the app being captured
  * @param {string} appName - Human-readable app name
  * @returns {Promise<{base64: string, timestamp: number, packageName: string, appName: string} | null>}
@@ -124,6 +154,21 @@ export const captureScreenshot = async (packageName, appName) => {
     console.error('❌ ScreenCaptureModule not available');
     return null;
   }
+
+  // Check if permission is granted (either flag is set OR was previously granted in AsyncStorage)
+  // Note: MediaProjection tokens expire per session, so we check AsyncStorage as backup
+  if (!isPermissionGranted) {
+    // If flag is false, check if permission was previously granted in this session
+    const wasGrantedInSession = await AsyncStorage.getItem(PERMISSION_GRANTED_KEY);
+    if (wasGrantedInSession !== 'true') {
+      console.warn('⚠️  Screen capture permission not granted. User must grant via Settings.');
+      return null;
+    }
+    // Flag is false but AsyncStorage says it was granted - restore the flag
+    console.log('📸 Restoring permission flag from AsyncStorage');
+    isPermissionGranted = true;
+  }
+
   if (isCaptureInProgress) {
     console.log(`⏳ Screenshot already in progress, skipping ${appName} (${packageName})`);
     return null;
@@ -134,22 +179,6 @@ export const captureScreenshot = async (packageName, appName) => {
 
   try {
     while (true) {
-      // Always request fresh permission to avoid MediaProjection reuse errors
-      // MediaProjection tokens expire quickly and cannot be reused
-      console.log('📸 Requesting fresh permission for screenshot capture...');
-      isPermissionGranted = false; // Force fresh permission request
-      
-      const permissionGranted = await requestScreenCapturePermission();
-      if (!permissionGranted) {
-        console.warn('⚠️  User denied permission for this capture');
-        return null;
-      }
-
-      // Critical delay: MediaProjection needs time to become active after permission grant
-      // Android requires time to initialize the MediaProjection service
-      // Too short = "permission not granted" error, too long = bad UX
-      console.log('⏳ Waiting 500ms for MediaProjection to initialize...');
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       try {
         const result = await ScreenCaptureModule.captureScreen();
@@ -157,9 +186,6 @@ export const captureScreenshot = async (packageName, appName) => {
 
         // Update capture history
         captureHistory.set(packageName, Date.now());
-
-        // Reset permission flag for next capture
-        isPermissionGranted = false;
 
         return {
           base64: result.base64,
@@ -169,31 +195,39 @@ export const captureScreenshot = async (packageName, appName) => {
         };
       } catch (error) {
         const message = (error?.message || `${error || ''}`).toLowerCase();
-        const isPermissionNotReady = message.includes('permission not granted');
+        const isPermissionError = message.includes('permission not granted') || message.includes('permission denied') || message.includes('no_permission');
         const isMediaProjectionError = 
+          message.includes("don't re-use") || 
           message.includes("don't re-use the resultdata") || 
           message.includes('projection instance') ||
+          message.includes('projection stopped') ||
           message.includes('contentrecordingsession') ||
           message.includes('non-current mediaprojection') ||
           message.includes('token') || 
           message.includes('timed out') ||
           message.includes('acquirelatestimage') || 
-          message.includes('null object reference');
+          message.includes('null object reference') ||
+          message.includes('projection expired');
 
         console.warn(`⚠️  Screenshot capture failed for ${appName}: ${error.message || error}`);
 
-        // Retry once on MediaProjection errors or permission timing issues with longer delay
-        if (!retry && (isMediaProjectionError || isPermissionNotReady)) {
-          retry = true;
+        // If permission error, token has expired/been revoked - require explicit re-grant
+        if (isPermissionError) {
+          console.log('🔄 Permission/token lost. Requires user to explicitly re-grant.');
           isPermissionGranted = false;
-          console.log('🔄 MediaProjection error detected, waiting 800ms and retrying with fresh permission...');
-          await new Promise(resolve => setTimeout(resolve, 800));
+          return null;
+        }
+
+        // Retry once on MediaProjection errors with longer delay
+        if (!retry && isMediaProjectionError) {
+          retry = true;
+          console.log('🔄 MediaProjection error detected, waiting 1000ms and retrying...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         }
 
         // Give up after retry
         console.error(`❌ Screenshot capture failed permanently for ${appName}`);
-        isPermissionGranted = false;
         return null;
       }
     }

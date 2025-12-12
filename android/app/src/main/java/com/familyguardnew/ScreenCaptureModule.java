@@ -131,7 +131,8 @@ public class ScreenCaptureModule extends ReactContextBaseJavaModule implements A
             imageReader = null;
         }
 
-        imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2);
+        // Increase buffer size from 2 to 4 for better reliability with rapid captures
+        imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 4);
         
         virtualDisplay = mediaProjection.createVirtualDisplay(
             "ScreenCapture",
@@ -144,7 +145,8 @@ public class ScreenCaptureModule extends ReactContextBaseJavaModule implements A
             null
         );
 
-        // Wait for the virtual display to render (increased from 500ms to 800ms for stability)
+        // Increase delay from 800ms to 1500ms to ensure target app is fully rendered before capture
+        // This prevents capturing FamilyGuard app overlay or incomplete renders
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             try {
                 Image image = imageReader.acquireLatestImage();
@@ -189,7 +191,7 @@ public class ScreenCaptureModule extends ReactContextBaseJavaModule implements A
                     virtualDisplay = null;
                 }
             }
-        }, 800);
+        }, 1500);  // Increased from 800ms to 1500ms for stable capture
     }
 
     private Bitmap imageToBitmap(Image image) {
@@ -237,11 +239,15 @@ public class ScreenCaptureModule extends ReactContextBaseJavaModule implements A
             if (resultCode == Activity.RESULT_OK && data != null) {
                 mediaProjection = projectionManager.getMediaProjection(resultCode, data);
                 
-                // Register callback (required for Android 14+)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Register callback on ALL Android versions (not just 14+)
+                // This ensures we know when MediaProjection stops (user revokes, screen lock, etc.)
+                if (mediaProjection != null) {
                     mediaProjection.registerCallback(new MediaProjection.Callback() {
                         @Override
                         public void onStop() {
+                            // Token is now invalid - require user to grant permission again
+                            mediaProjection = null;
+                            System.out.println("⚠️  MediaProjection stopped/revoked - token no longer valid");
                             cleanup();
                         }
                     }, new Handler(Looper.getMainLooper()));

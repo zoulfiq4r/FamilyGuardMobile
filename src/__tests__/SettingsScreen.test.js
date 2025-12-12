@@ -9,7 +9,6 @@ const createProps = () => ({
   onNavigateToPermissions: jest.fn(),
   onNavigateToProfile: jest.fn(),
   onNavigateToAbout: jest.fn(),
-  onNavigateToBlockApps: jest.fn(),
   onLogout: jest.fn(),
 });
 
@@ -30,9 +29,6 @@ describe('SettingsScreen', () => {
 
     fireEvent.press(getByText('Permissions'));
     expect(props.onNavigateToPermissions).toHaveBeenCalled();
-
-    fireEvent.press(getByText('Block Apps'));
-    expect(props.onNavigateToBlockApps).toHaveBeenCalled();
 
     fireEvent.press(getByText('About'));
     expect(props.onNavigateToAbout).toHaveBeenCalled();

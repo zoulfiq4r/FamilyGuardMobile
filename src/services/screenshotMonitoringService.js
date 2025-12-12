@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, NativeModules } from 'react-native';
 import { captureScreenshot, isSuspiciousApp, requestScreenCapturePermission, restorePermissionState, isScreenCapturePermissionGranted } from './screenshotService';
 import { analyzeWithOfflineSupport, setupOfflineQueueSync } from './contentAnalysisService';
 import { createContentAlert } from './contentAlertsService';
 import { SCREENSHOT_CONFIG, shouldCreateAlert } from '../config/screenshotConfig';
+
+const { AppUsageModule } = NativeModules;
 
 const PAIRING_DATA_KEY = '@familyguard_pairing';
 const FEATURE_ENABLED_KEY = '@familyguard_screenshot_monitoring_enabled';
@@ -20,7 +23,9 @@ const HANDLE_DEBOUNCE_MS = 2000; // Don't handle same app within 2 seconds
  */
 export const requestPermission = async () => {
   try {
+    console.log('📸 screenshotMonitoringService: Requesting permission...');
     const granted = await requestScreenCapturePermission();
+    console.log('📸 screenshotMonitoringService: Permission result =', granted);
     return granted;
   } catch (error) {
     console.error('Failed to request screen capture permission', error);
@@ -114,23 +119,26 @@ export const handleAppSwitch = async (packageName, appName) => {
   // Debounce: prevent handling same app multiple times in quick succession
   const now = Date.now();
   if (lastHandledApp === packageName && (now - lastHandledTime) < HANDLE_DEBOUNCE_MS) {
+    console.log(`⏭️  Skipping duplicate ${appName} (debounced)`);
     return; // Skip duplicate detection within debounce window
   }
 
   lastHandledApp = packageName;
   lastHandledTime = now;
 
-  // Permission will be requested in captureScreenshot if needed
   console.log(`🔍 Suspicious app detected: ${appName} (${packageName})`);
+  console.log(`📸 Capturing screenshot of ${appName}...`);
 
   try {
-    // Capture screenshot (will request permission if needed)
+    // Capture screenshot
     const screenshot = await captureScreenshot(packageName, appName);
     
     if (!screenshot) {
-      // Cooldown active or capture failed
+      console.log(`❌ Screenshot capture returned null for ${appName} - check cooldown or permission`);
       return;
     }
+
+    console.log(`✅ Screenshot captured: ${screenshot.base64?.length || 0} bytes`);
 
     // Add childId to screenshot data for offline queue
     const screenshotWithContext = {

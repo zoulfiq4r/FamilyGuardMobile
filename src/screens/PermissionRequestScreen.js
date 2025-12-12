@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { requestPermission as requestScreenshotPermission } from '../services/screenshotMonitoringService';
 
 export default function PermissionRequestScreen({
   onBack,
@@ -17,6 +18,7 @@ export default function PermissionRequestScreen({
   onRequestOverlay,
   onRequestBatteryOptimization,
   onRequestLocation,
+  onRequestScreenshotPermission = requestScreenshotPermission,
 }) {
   const permissions = [
     {
@@ -68,6 +70,16 @@ export default function PermissionRequestScreen({
       color: 'amber',
       action: onRequestBatteryOptimization,
       actionLabel: 'Allow Background',
+    },
+    {
+      id: 'screenshot',
+      icon: '📸',
+      title: 'Screenshot Monitoring',
+      description: 'Allow screen capture for content alerts',
+      status: permissionState?.screenshot ? 'granted' : 'pending',
+      color: 'amber',
+      action: onRequestScreenshotPermission,
+      actionLabel: 'Grant Screenshot',
     },
   ];
 
@@ -136,7 +148,17 @@ export default function PermissionRequestScreen({
                 </View>
               </View>
 
-              {permission.status === 'pending' && (
+              {permission.status === 'granted' ? (
+                <TouchableOpacity
+                  style={[styles.grantButton, styles.grantButtonActive]}
+                  activeOpacity={0.8}
+                  onPress={permission.action}
+                >
+                  <Text style={styles.grantButtonText}>
+                    ✓ Re-enable {permission.title}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
                 <TouchableOpacity
                   style={styles.grantButton}
                   activeOpacity={0.8}
@@ -322,6 +344,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#2563EB',
     alignItems: 'center',
+  },
+  grantButtonActive: {
+    backgroundColor: '#1D4ED8',
   },
   grantButtonText: {
     color: '#FFFFFF',

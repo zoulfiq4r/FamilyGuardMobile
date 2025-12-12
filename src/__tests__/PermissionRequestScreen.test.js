@@ -11,6 +11,7 @@ describe('PermissionRequestScreen', () => {
     const onRequestAccessibility = jest.fn();
     const onRequestOverlay = jest.fn();
     const onRequestBatteryOptimization = jest.fn();
+    const onRequestScreenshotPermission = jest.fn();
 
     const { getByText, getAllByText } = render(
       <PermissionRequestScreen
@@ -21,6 +22,7 @@ describe('PermissionRequestScreen', () => {
         onRequestAccessibility={onRequestAccessibility}
         onRequestOverlay={onRequestOverlay}
         onRequestBatteryOptimization={onRequestBatteryOptimization}
+        onRequestScreenshotPermission={onRequestScreenshotPermission}
         permissionState={{}}
       />
     );
@@ -36,12 +38,14 @@ describe('PermissionRequestScreen', () => {
     fireEvent.press(openSettingsButtons[1]);
     fireEvent.press(getByText('Grant Overlay'));
     fireEvent.press(getByText('Allow Background'));
+    fireEvent.press(getByText('Grant Screenshot'));
 
     expect(onRequestLocation).toHaveBeenCalled();
     expect(onRequestUsageAccess).toHaveBeenCalled();
     expect(onRequestAccessibility).toHaveBeenCalled();
     expect(onRequestOverlay).toHaveBeenCalled();
     expect(onRequestBatteryOptimization).toHaveBeenCalled();
+    expect(onRequestScreenshotPermission).toHaveBeenCalled();
 
     // Done button
     fireEvent.press(getByText("I've Granted Permissions"));

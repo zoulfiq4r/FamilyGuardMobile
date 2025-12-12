@@ -9,31 +9,14 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import { requestPermission } from '../services/screenshotMonitoringService';
 
 export default function SettingsScreen({ 
   onBack, 
   onNavigateToPermissions,
   onNavigateToProfile,
   onNavigateToAbout,
-  onNavigateToBlockApps,
   onLogout 
 }) {
-  const handleTestPermission = async () => {
-    console.log('🧪 Testing screen capture permission...');
-    try {
-      const granted = await requestPermission();
-      Alert.alert(
-        'Permission Result',
-        granted ? 'Permission granted!' : 'Permission denied',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert('Error', error.message, [{ text: 'OK' }]);
-      console.error('Permission error:', error);
-    }
-  };
-
   const handleLogout = () => {
     Alert.alert(
       'Disconnect Device',
@@ -108,23 +91,6 @@ export default function SettingsScreen({
 
           <TouchableOpacity 
             style={styles.menuItem} 
-            onPress={onNavigateToBlockApps}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconContainer, styles.redIcon]}>
-              <Text style={styles.iconEmoji}>🚫</Text>
-            </View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitle}>Block Apps</Text>
-              <Text style={styles.menuSubtitle}>Manage blocked applications</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-
-          <View style={styles.separator} />
-
-          <TouchableOpacity 
-            style={styles.menuItem} 
             onPress={onNavigateToAbout}
             activeOpacity={0.7}
           >
@@ -134,23 +100,6 @@ export default function SettingsScreen({
             <View style={styles.menuText}>
               <Text style={styles.menuTitle}>About</Text>
               <Text style={styles.menuSubtitle}>App version & info</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-
-          <View style={styles.separator} />
-
-          <TouchableOpacity 
-            style={styles.menuItem} 
-            onPress={handleTestPermission}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconContainer, styles.orangeIcon]}>
-              <Text style={styles.iconEmoji}>📸</Text>
-            </View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitle}>Test Screenshot Permission</Text>
-              <Text style={styles.menuSubtitle}>Request screen capture access</Text>
             </View>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
@@ -273,9 +222,6 @@ const styles = StyleSheet.create({
   },
   redIcon: {
     backgroundColor: '#FEE2E2',
-  },
-  orangeIcon: {
-    backgroundColor: '#FED7AA',
   },
   iconEmoji: {
     fontSize: 20,

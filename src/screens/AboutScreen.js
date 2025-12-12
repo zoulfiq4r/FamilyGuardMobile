@@ -10,6 +10,34 @@ import {
 } from 'react-native';
 
 export default function AboutScreen({ onBack }) {
+  const features = [
+    {
+      icon: '📍',
+      title: 'Live location safety',
+      description: 'Real-time location updates with safe zone awareness.',
+    },
+    {
+      icon: '🛡️',
+      title: 'Permission guardrails',
+      description: 'Guided setup to keep required permissions healthy.',
+    },
+    {
+      icon: '🚨',
+      title: 'Smart alerts',
+      description: 'Notifies parents when risky activity or content is detected.',
+    },
+    {
+      icon: '⏱️',
+      title: 'Usage insights',
+      description: 'Screen time and app activity to encourage healthy habits.',
+    },
+  ];
+
+  const supportChannels = [
+    { label: 'Email', value: 'zoulfiqar.kanso@gmail.com' },
+    { label: 'Phone', value: '+961 79 171 194' },
+  ];
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -34,20 +62,40 @@ export default function AboutScreen({ onBack }) {
             <Text style={styles.logoEmoji}>🛡️</Text>
           </View>
           <Text style={styles.appName}>FamilyGuard Child</Text>
-          <Text style={styles.version}>Version 1.0.0</Text>
-          
+          <View style={styles.tagRow}>
+            <Text style={styles.versionTag}>v1.0.0</Text>
+            <Text style={styles.tagline}>Keeping families connected and safe</Text>
+          </View>
+
           <View style={styles.features}>
-            <Text style={styles.featuresTitle}>Features:</Text>
-            <Text style={styles.feature}>• Location sharing</Text>
-            <Text style={styles.feature}>• Emergency alerts</Text>
-            <Text style={styles.feature}>• Safe browsing</Text>
-            <Text style={styles.feature}>• Parent notifications</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Feature Highlights</Text>
+              <Text style={styles.sectionSubtitle}>What you get out of the box</Text>
+            </View>
+            {features.map((item) => (
+              <View key={item.title} style={styles.featureItem}>
+                <View style={[styles.iconPill, styles.featurePill]}>
+                  <Text style={styles.featureIcon}>{item.icon}</Text>
+                </View>
+                <View style={styles.featureCopy}>
+                  <Text style={styles.featureTitle}>{item.title}</Text>
+                  <Text style={styles.featureDescription}>{item.description}</Text>
+                </View>
+              </View>
+            ))}
           </View>
 
           <View style={styles.contact}>
-            <Text style={styles.contactTitle}>Support</Text>
-            <Text style={styles.contactText}>support@familyguard.app</Text>
-            <Text style={styles.contactText}>+961 79 171 194</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Support</Text>
+              <Text style={styles.sectionSubtitle}>We respond within one business day</Text>
+            </View>
+            {supportChannels.map((channel) => (
+              <View key={channel.label} style={styles.supportRow}>
+                <Text style={styles.supportLabel}>{channel.label}</Text>
+                <Text style={styles.supportValue}>{channel.value}</Text>
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -102,6 +150,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 5,
   },
   logoContainer: {
     width: 80,
@@ -121,39 +174,96 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 8,
   },
-  version: {
-    fontSize: 16,
-    color: '#6B7280',
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginBottom: 24,
+  },
+  versionTag: {
+    backgroundColor: '#E0F2FE',
+    color: '#0369A1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  tagline: {
+    color: '#475569',
+    fontSize: 14,
   },
   features: {
     alignSelf: 'stretch',
     marginBottom: 24,
   },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+  sectionHeader: {
     marginBottom: 12,
   },
-  feature: {
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
     color: '#6B7280',
-    marginBottom: 8,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
+  },
+  featurePill: {
+    backgroundColor: '#EEF2FF',
+  },
+  iconPill: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureIcon: {
+    fontSize: 20,
+  },
+  featureCopy: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  featureDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
   },
   contact: {
     alignSelf: 'stretch',
   },
-  contactTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
+  supportRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  contactText: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 4,
+  supportLabel: {
+    fontSize: 15,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  supportValue: {
+    fontSize: 15,
+    color: '#0F172A',
+    fontWeight: '600',
   },
 
 
