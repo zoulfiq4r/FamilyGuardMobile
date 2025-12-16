@@ -125,7 +125,8 @@ const detectMockLocation = (lat, lon) => {
   );
 };
 
-export const sendLocationUpdate = async (childId) => {
+export const sendLocationUpdate = async (childId, opts = {}) => {
+  const { userVisible = false } = opts;
   if (!childId) {
     throw new Error('Missing child identifier for location update.');
   }
@@ -218,7 +219,16 @@ export const sendLocationUpdate = async (childId) => {
     } else if (error?.code === 3) {
       message = 'Location request timed out.';
     }
-
+    if (userVisible) {
+      Alert.alert('Location Error', message, [
+        // Offer Settings only when it can likely help
+        error?.code === 1 || error?.code === 2
+          ? { text: 'Open Settings', onPress: () => Linking?.openSettings?.() }
+          : undefined,
+        { text: 'OK' },
+      ].filter(Boolean), { cancelable: true });
+      return null;
+    }
     throw new Error(message);
   }
 };
@@ -230,7 +240,8 @@ export const startLocationTracking = async (childId, showPermissionExplanation =
   }
 
   try {
-    await sendLocationUpdate(childId);
+    // In tracking mode, prefer user-friendly alerts over throwing
+    await sendLocationUpdate(childId, { userVisible: true });
   } catch (error) {
     console.warn('Initial location update failed', error);
   }
@@ -239,7 +250,7 @@ export const startLocationTracking = async (childId, showPermissionExplanation =
     BackgroundTimer.clearInterval(locationInterval);
   }
   locationInterval = BackgroundTimer.setInterval(() => {
-    sendLocationUpdate(childId).catch((error) => {
+    sendLocationUpdate(childId, { userVisible: true }).catch((error) => {
       console.warn('Recurring location update failed', error);
     });
   }, 300000);

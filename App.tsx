@@ -14,7 +14,6 @@ import { testFirebaseConnection, auth } from './src/config/firebase';
 import { signInAnonymously } from '@react-native-firebase/auth';
 import { startLocationTracking, stopLocationTracking } from './src/services/locationService';
 import { refreshForegroundApp, startAppUsageTracking, stopAppUsageTracking } from './src/services/appUsageService';
-import { fetchExistingDevicePairing } from './src/services/pairingService';
 import {
   getBlockerPermissionsStatus,
   openAccessibilitySettings,
@@ -120,7 +119,6 @@ function App() {
       return null;
     }
   }, []);
-
   const refreshUsageTracking = useCallback(async () => {
     if (!childContext) {
       return false;
@@ -263,21 +261,8 @@ function App() {
           return;
         }
 
-        const restoredContext = await fetchExistingDevicePairing();
-
-        if (!isActive) {
-          return;
-        }
-
-        if (restoredContext?.childId) {
-          await handlePaired({
-            success: true,
-            childId: restoredContext.childId,
-            parentId: restoredContext.parentId,
-            childName: restoredContext.childName,
-          });
-          return;
-        }
+        // Fresh installs should not auto-restore pairing from backend.
+        // Show the pairing screen when no local context is found.
 
         setCurrentScreen('pairing');
       } catch (error) {
@@ -440,7 +425,7 @@ function App() {
     }
   }, [childContext]);
 
-  const handleRequestScreenshotPermission = useCallback(async () => {
+  const handleRequestScreenshotPermission = useCallback(async (): Promise<boolean> => {
     try {
       console.log('🔐 App: handleRequestScreenshotPermission called');
       const granted = await requestPermission();
@@ -450,8 +435,10 @@ function App() {
         screenshot: granted,
       }));
       console.log('🔐 App: Permission state updated to', granted);
+      return Boolean(granted);
     } catch (error) {
       console.error('Failed to request screenshot permission', error);
+      return false;
     }
   }, []);
 
@@ -472,7 +459,6 @@ function App() {
           onNavigateToPermissions={handleNavigateToPermissions}
           onNavigateToProfile={() => setCurrentScreen('profile')}
           onNavigateToAbout={() => setCurrentScreen('about')}
-          onNavigateToBlockApps={() => setCurrentScreen('blockApps')}
           onLogout={handleLogout}
         />
       )}
@@ -494,6 +480,7 @@ function App() {
           onBack={handleBack}
           childContext={childContext}
           permissionState={permissionState}
+          deviceInfoOverride={undefined}
         />
       )}
       {currentScreen === 'about' && <AboutScreen onBack={handleBack} />}

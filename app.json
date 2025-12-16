@@ -1,4 +1,5 @@
 {
   "name": "FamilyGuardNew",
-  "displayName": "FamilyGuardNew"
+  "displayName": "Family Guard",
+  "icon": "./assets/icon.png"
 }

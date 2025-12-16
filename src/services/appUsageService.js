@@ -26,6 +26,7 @@ let activeApp = null;
 let usageTimezone = 'UTC';
 let zonedFormatter = null;
 let currentDateKey = null;
+let previousForegroundApp = null; // Track the previous foreground app to detect real switches
 
 const createFormatter = (timeZone) => {
   try {
@@ -313,10 +314,16 @@ const processUsageEvents = async (events) => {
         console.warn('Failed to update current app', error);
       });
 
-      // Trigger screenshot monitoring for suspicious apps
-      handleAppSwitch(packageName, appName || packageName).catch((error) => {
-        console.warn('Screenshot monitoring failed', error);
-      });
+      // Only trigger screenshot monitoring if this is a REAL app switch
+      // (not initial load or duplicate events)
+      if (previousForegroundApp !== packageName) {
+        previousForegroundApp = packageName;
+        
+        // Trigger screenshot monitoring for suspicious apps
+        handleAppSwitch(packageName, appName || packageName).catch((error) => {
+          console.warn('Screenshot monitoring failed', error);
+        });
+      }
     } else if (eventType === 'BACKGROUND') {
       const activeEntry = activeSessions.get(packageName);
       const start = activeEntry?.startTime ?? lastEventTimestamp;
@@ -415,6 +422,7 @@ export const stopAppUsageTracking = () => {
   usageTotals.clear();
   recentSessions.length = 0;
   currentDateKey = null;
+  previousForegroundApp = null; // Reset tracking state
   notifyListeners();
 
   usageTrackingActive = false;
